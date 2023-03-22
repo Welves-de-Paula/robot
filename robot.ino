@@ -21,7 +21,7 @@ void setup()
   pinMode(Motor1B, OUTPUT);
   pinMode(Motor2A, OUTPUT);
   pinMode(Motor2B, OUTPUT);
-  pinMode(Motor3A, OUTPUT);
+  pinMode(Motor3A, OUTPUT);v
   pinMode(Motor3B, OUTPUT);
   pinMode(Motor4A, OUTPUT);
   pinMode(Motor4B, OUTPUT);
