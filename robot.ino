@@ -1,88 +1,68 @@
-#include <Wire.h>
+// Bibliotecas necessárias
+#include <SoftwareSerial.h>
+#include <AFMotor.h>
 
-#define Motor1A 5
-#define Motor1B 6
-#define Motor2A 7
-#define Motor2B 8
-#define Motor3A 9 
-#define Motor3B 10
-#define Motor4A 11
-#define Motor4B 12
+// Define os pinos do ESP01
+#define RX 2
+#define TX 3
 
-const int buttons[] = {1, 2, 3, 4, 5, 6};
+// Inicializa o software serial
+SoftwareSerial espSerial(RX, TX);
 
-void setup()
-{
-  // Inicializa a comunicação com o Motor Shield
-  Wire.begin();
+// Cria o objeto para controlar o Motor Shield
+AF_DCMotor motor1(1);
+AF_DCMotor motor2(2);
+AF_DCMotor motor3(3);
+AF_DCMotor motor4(4);
 
-  // Configura os pinos dos motores como saídas
-  pinMode(Motor1A, OUTPUT);
-  pinMode(Motor1B, OUTPUT);
-  pinMode(Motor2A, OUTPUT);
-  pinMode(Motor2B, OUTPUT);
-  pinMode(Motor3A, OUTPUT);v
-  pinMode(Motor3B, OUTPUT);
-  pinMode(Motor4A, OUTPUT);
-  pinMode(Motor4B, OUTPUT);
+void setup() {
+  // Inicializa o ESP01
+  espSerial.begin(9600);
+  espSerial.println("Robo 4WD inicializado");
 
-  // Configura os pinos dos botões como entradas
-  for (int i = 0; i < 6; i++)
-  {
-    pinMode(buttons[i], INPUT_PULLUP);
-  }
+  // Inicializa o Motor Shield
+  motor1.setSpeed(0);
+  motor2.setSpeed(0);
+  motor3.setSpeed(0);
+  motor4.setSpeed(0);
 }
 
-void loop()
-{
-  // Controla o motor 1 de acordo com os estados dos botões
-  if (digitalRead(buttons[0]) == LOW)
-  {
-    digitalWrite(Motor1A, HIGH);
-    digitalWrite(Motor1B, LOW);
-  }
-  else if (digitalRead(buttons[1]) == LOW)
-  {
-    digitalWrite(Motor1A, LOW);
-    digitalWrite(Motor1B, HIGH);
-  }
-  else
-  {
-    digitalWrite(Motor1A, LOW);
-    digitalWrite(Motor1B, LOW);
-  }
+void loop() {
+  // Lê o comando enviado pelo ESP01
+  if (espSerial.available() > 0) {
+    char comando = espSerial.read();
 
-  // Controla o motor 2 de acordo com os estados dos botões
-  if (digitalRead(buttons[2]) == LOW)
-  {
-    digitalWrite(Motor2A, HIGH);
-    digitalWrite(Motor2B, LOW);
-  }
-  else if (digitalRead(buttons[3]) == LOW)
-  {
-    digitalWrite(Motor2A, LOW);
-    digitalWrite(Motor2B, HIGH);
-  }
-  else
-  {
-    digitalWrite(Motor2A, LOW);
-    digitalWrite(Motor2B, LOW);
-  }
-
-  // Controla o motor 3 de acordo com os estados dos botões
-  if (digitalRead(buttons[4]) == LOW)
-  {
-    digitalWrite(Motor3A, HIGH);
-    digitalWrite(Motor3B, LOW);
-  }
-  else if (digitalRead(buttons[5]) == LOW)
-  {
-    digitalWrite(Motor3A, LOW);
-    digitalWrite(Motor3B, HIGH);
-  }
-  else
-  {
-    digitalWrite(Motor3A, LOW);
-    digitalWrite(Motor3B, LOW);
+    // Verifica qual comando foi recebido
+    if (comando == 'F') {
+      // Move o robô para frente
+      motor1.run(FORWARD);
+      motor2.run(FORWARD);
+      motor3.run(FORWARD);
+      motor4.run(FORWARD);
+    } else if (comando == 'B') {
+      // Move o robô para trás
+      motor1.run(BACKWARD);
+      motor2.run(BACKWARD);
+      motor3.run(BACKWARD);
+      motor4.run(BACKWARD);
+    } else if (comando == 'L') {
+      // Gira o robô para a esquerda
+      motor1.run(FORWARD);
+      motor2.run(FORWARD);
+      motor3.run(BACKWARD);
+      motor4.run(BACKWARD);
+    } else if (comando == 'R') {
+      // Gira o robô para a direita
+      motor1.run(BACKWARD);
+      motor2.run(BACKWARD);
+      motor3.run(FORWARD);
+      motor4.run(FORWARD);
+    } else if (comando == 'S') {
+      // Para o robô
+      motor1.run(RELEASE);
+      motor2.run(RELEASE);
+      motor3.run(RELEASE);
+      motor4.run(RELEASE);
+    }
   }
 }
