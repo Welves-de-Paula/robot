@@ -1,12 +1,7 @@
 export default
     [
-        { type: "route", path: '/clientes', displayName: 'Clientes', permission: 'customersIndex', icon: "mdi-account" },
-        { type: "route", path: '/pedidos', displayName: "Pedidos", permission: 'ordersIndex', icon: "mdi-cart" },
-        { type: "route", path: '/produtos', displayName: 'Produtos', permission: 'productsIndex', icon: "mdi-package-variant" },
-        { type: "route", path: "/regioes", displayName: 'Regiões', permission: 'regionsIndex', icon: "mdi-map-marker" },
-        { type: "route", path: "/grupos", displayName: 'Grupos', permission: 'groupsIndex', icon: "mdi-sitemap" },
-        { type: "route", path: "/usuarios", displayName: 'Usuários', permission: 'usersIndex', icon: 'mdi-account-group' },
-        { type: "route", path: "/vendedores", displayName: 'Vendedores', permission: 'salesmenIndex', icon: 'mdi-account-tie' },
+        { type: "route", path: '/', displayName: 'Clientes', permission: 'customersIndex', icon: "mdi-account" },
+
 
         // {
         //   type: "group",
