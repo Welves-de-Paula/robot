@@ -1,5 +1,5 @@
 {
     "board": "arduino:avr:uno",
     "port": "/dev/ttyUSB0",
-    "sketch": "robot.ino"
+    "sketch": "wifi/index.ino"
 }
