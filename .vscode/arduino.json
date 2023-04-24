@@ -1,5 +1,5 @@
 {
     "board": "arduino:avr:uno",
     "port": "/dev/ttyUSB0",
-    "sketch": "wifi/index.ino"
+    "sketch": "ESP2866/ESP2866.ino"
 }
