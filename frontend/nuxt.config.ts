@@ -1,9 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-
   devtools: { enabled: true },
-
   ssr: false,
 
   devServer: {
@@ -19,6 +17,11 @@ export default defineNuxtConfig({
 
   app: {
     head: {
+
+      title: "ROBOT 4WD",
+      htmlAttrs: {
+        lang: 'pt-BR',
+      },
       viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no',
       meta: [
         { name: 'mobile-web-app-capable', content: 'yes' },
@@ -27,4 +30,6 @@ export default defineNuxtConfig({
       ]
     }
   },
+
+  modules: ['@vite-pwa/nuxt'],
 })

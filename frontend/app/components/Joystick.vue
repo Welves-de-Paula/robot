@@ -5,8 +5,8 @@
     </div>
     <div class="joystick-info">
       <p>{{ label }}</p>
-      <p>X: {{ position.x.toFixed(2) }}</p>
-      <p>Y: {{ position.y.toFixed(2) }}</p>
+      <p>X: {{ normalizedPosition.x.toFixed(2) }}</p>
+      <p>Y: {{ normalizedPosition.y.toFixed(2) }}</p>
     </div>
   </div>
 </template>
@@ -30,14 +30,34 @@ const joystickArea = ref<HTMLElement | null>(null)
 const joystickHandle = ref<HTMLElement | null>(null)
 const isDragging = ref(false)
 const position = ref({ x: 0, y: 0 })
-const maxDistance = 50
+const normalizedPosition = ref({ x: 0, y: 0 })
+const deadZone = 0.05 // 5% dead zone no centro
+const activeTouchId = ref<number | null>(null) // Rastrear qual toque está ativo
 
 const handleStyle = computed(() => ({
-  transform: `translate(${position.value.x}px, ${position.value.y}px)`
+  transform: `translate(calc(-50% + ${position.value.x}px), calc(-50% + ${position.value.y}px))`
 }))
 
 const handleStart = (event: MouseEvent | TouchEvent) => {
   event.preventDefault()
+  event.stopPropagation() // Impedir que o evento se propague para outros componentes
+
+  if (event instanceof TouchEvent && event.touches.length > 0) {
+    // Para touch, encontrar o toque que está dentro da área do joystick
+    const rect = joystickArea.value?.getBoundingClientRect()
+    if (!rect) return
+
+    for (const touch of Array.from(event.touches)) {
+      const isInside = touch.clientX >= rect.left && touch.clientX <= rect.right &&
+        touch.clientY >= rect.top && touch.clientY <= rect.bottom
+
+      if (isInside && activeTouchId.value === null) {
+        activeTouchId.value = touch.identifier
+        break
+      }
+    }
+  }
+
   isDragging.value = true
   handleMove(event)
 }
@@ -45,52 +65,93 @@ const handleStart = (event: MouseEvent | TouchEvent) => {
 const handleMove = (event: MouseEvent | TouchEvent) => {
   if (!isDragging.value || !joystickArea.value) return
 
+  // Para mouse, processar normalmente
+  if (event instanceof MouseEvent) {
+    const rect = joystickArea.value.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    const maxDistance = Math.min(rect.width, rect.height) / 3
+
+    processMovement(event.clientX, event.clientY, centerX, centerY, maxDistance)
+    return
+  }
+
+  // Para TouchEvent, só processar se for o toque correto deste joystick
+  if (activeTouchId.value === null) return
+
+  const touch = Array.from(event.touches).find(t => t.identifier === activeTouchId.value)
+  if (!touch) return // Se não encontrar o toque correto, ignorar
+
   const rect = joystickArea.value.getBoundingClientRect()
   const centerX = rect.left + rect.width / 2
   const centerY = rect.top + rect.height / 2
+  const maxDistance = Math.min(rect.width, rect.height) / 3
 
-  let clientX: number
-  let clientY: number
+  processMovement(touch.clientX, touch.clientY, centerX, centerY, maxDistance)
+}
 
-  if (event instanceof MouseEvent) {
-    clientX = event.clientX
-    clientY = event.clientY
-  } else {
-    clientX = event.touches[0].clientX
-    clientY = event.touches[0].clientY
-  }
-
+const processMovement = (clientX: number, clientY: number, centerX: number, centerY: number, maxDistance: number) => {
   let deltaX = clientX - centerX
-  let deltaY = clientY - centerY
+  let deltaY = -(clientY - centerY) // INVERTIDO: negativo para que "para cima" seja positivo
 
   const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
 
+  // Limitar ao raio máximo
   if (distance > maxDistance) {
     const angle = Math.atan2(deltaY, deltaX)
     deltaX = Math.cos(angle) * maxDistance
     deltaY = Math.sin(angle) * maxDistance
   }
 
-  position.value = { x: deltaX, y: deltaY }
+  // Atualizar posição visual (Y invertido de volta para display)
+  position.value = { x: deltaX, y: -deltaY }
 
-  // Normalize to -1 to 1 range
-  const normalizedX = deltaX / maxDistance
-  const normalizedY = deltaY / maxDistance
+  // Normalizar para -1 a 1
+  let normalizedX = deltaX / maxDistance
+  let normalizedY = deltaY / maxDistance
 
+  // Aplicar dead zone
+  const normalizedDistance = Math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY)
+
+  if (normalizedDistance < deadZone) {
+    normalizedX = 0
+    normalizedY = 0
+  } else {
+    // Reescalar para manter a transição suave após o dead zone
+    const scale = (normalizedDistance - deadZone) / (1 - deadZone)
+    const angle = Math.atan2(normalizedY, normalizedX)
+    normalizedX = Math.cos(angle) * scale
+    normalizedY = Math.sin(angle) * scale
+  }
+
+  // Garantir que os valores estão entre -1 e 1
+  normalizedX = Math.max(-1, Math.min(1, normalizedX))
+  normalizedY = Math.max(-1, Math.min(1, normalizedY))
+
+  normalizedPosition.value = { x: normalizedX, y: normalizedY }
   emit('move', { x: normalizedX, y: normalizedY })
 }
 
-const handleEnd = () => {
+const handleEnd = (event?: MouseEvent | TouchEvent) => {
+  // Para TouchEvent, verificar se o toque que terminou é o nosso
+  if (event instanceof TouchEvent) {
+    const endedTouch = Array.from(event.changedTouches).find(t => t.identifier === activeTouchId.value)
+    if (!endedTouch) return // Se não é o nosso toque, ignorar
+  }
+
   isDragging.value = false
   position.value = { x: 0, y: 0 }
+  normalizedPosition.value = { x: 0, y: 0 }
+  activeTouchId.value = null
   emit('move', { x: 0, y: 0 })
 }
 
 onMounted(() => {
   document.addEventListener('mousemove', handleMove)
   document.addEventListener('mouseup', handleEnd)
-  document.addEventListener('touchmove', handleMove)
+  document.addEventListener('touchmove', handleMove, { passive: false })
   document.addEventListener('touchend', handleEnd)
+  document.addEventListener('touchcancel', handleEnd)
 })
 
 onUnmounted(() => {
@@ -98,6 +159,7 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', handleEnd)
   document.removeEventListener('touchmove', handleMove)
   document.removeEventListener('touchend', handleEnd)
+  document.removeEventListener('touchcancel', handleEnd)
 })
 </script>
 
