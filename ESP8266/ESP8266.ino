@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 
 /* ================= METADATA ================= */
-#define FW_VERSION "3.6.1-ESP-GATEWAY"
+#define FW_VERSION "3.7.0-ESP-GATEWAY"
 
 /* ================= PORTAS =================== */
 #define HTTP_PORT 80
@@ -49,7 +49,6 @@ struct Config {
   bool http;
   bool ws;
   bool udp;
-  bool led_status;
 };
 
 Config cfg;
@@ -91,10 +90,7 @@ void loadCfg() {
     cfg.sta_pass[0] = 0;
     strcpy(cfg.admin_user, "admin");
     strcpy(cfg.admin_pass, "admin123");
-    cfg.http = true;
-    cfg.ws = true;
-    cfg.udp = true;
-    cfg.led_status = true;
+    cfg.http = cfg.ws = cfg.udp = true;
     return;
   }
 
@@ -113,7 +109,6 @@ void loadCfg() {
   cfg.http = d["http"] | true;
   cfg.ws = d["ws"] | true;
   cfg.udp = d["udp"] | true;
-  cfg.led_status = d["led_status"] | true;
 }
 
 void saveCfg() {
@@ -128,7 +123,6 @@ void saveCfg() {
   d["http"] = cfg.http;
   d["ws"] = cfg.ws;
   d["udp"] = cfg.udp;
-  d["led_status"] = cfg.led_status;
 
   File f = LittleFS.open(CFG_FILE, "w");
   serializeJson(d, f);
@@ -143,13 +137,11 @@ void startWiFi() {
     WiFi.mode(WIFI_AP_STA);
     WiFi.begin(cfg.sta_ssid, cfg.sta_pass);
     state.wifiConnecting = true;
-    logEvent("Tentando STA: " + String(cfg.sta_ssid));
   } else {
     WiFi.mode(WIFI_AP);
   }
 
   WiFi.softAP(cfg.ap_ssid, cfg.ap_pass);
-  logEvent("AP ativo: " + WiFi.softAPIP().toString());
 }
 
 void checkWiFi() {
@@ -161,32 +153,15 @@ void checkWiFi() {
   if (WiFi.status() != WL_CONNECTED && !state.wifiConnecting) {
     WiFi.begin(cfg.sta_ssid, cfg.sta_pass);
     state.wifiConnecting = true;
-    logEvent("Reconectando Wi-Fi...");
   }
 
   if (state.wifiConnecting && WiFi.status() == WL_CONNECTED) {
     state.wifiConnecting = false;
-    logEvent("STA conectado: " + WiFi.localIP().toString());
-
     if (!state.mdnsStarted) {
       MDNS.begin(cfg.device);
       state.mdnsStarted = true;
-      logEvent("mDNS ativo");
     }
   }
-}
-
-/* ================= LED ===================== */
-void updateLED() {
-  if (!cfg.led_status) {
-    digitalWrite(LED_PIN, HIGH);
-    return;
-  }
-
-  digitalWrite(
-    LED_PIN,
-    WiFi.status() == WL_CONNECTED ? LOW : (millis() / 500) % 2
-  );
 }
 
 /* ================= STATUS =================== */
@@ -208,225 +183,122 @@ void handleStatus() {
 
 /* ================= HTML =================== */
 const char ADMIN_HTML[] PROGMEM = R"rawliteral(
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>ESP8266 Admin</title>
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>ESP8266 Gateway</title>
 <style>
-body{
-  background:#111;
-  color:#eee;
-  font-family:Arial;
-  max-width:900px;
-  margin:auto;
-  padding:20px
-}
-.card{
-  background:#1c1c1c;
-  padding:15px;
-  border-radius:8px;
-  margin-bottom:15px
-}
-input{
-  width:100%;
-  padding:9px;
-  margin-top:6px;
-  border-radius:6px;
-  border:none
-}
-button{
-  padding:11px;
-  width:100%;
-  margin-top:10px;
-  border:none;
-  border-radius:6px;
-  font-size:15px;
-  cursor:pointer;
-  transition:background .2s, transform .1s
-}
-button:hover{ transform:scale(1.01) }
-
-.btn-save{ background:#2196f3;color:#fff }
-.btn-save:hover{ background:#1e88e5 }
-
-.btn-reboot{ background:#2e2e2e;color:#fff }
-.btn-reboot:hover{ background:#3a3a3a }
-
-.btn-reset{ background:#b71c1c;color:#fff }
-.btn-reset:hover{ background:#c62828 }
-
-.btn-logout{ background:#555;color:#fff }
-.btn-logout:hover{ background:#666 }
+body{background:#111;color:#eee;font-family:Arial;padding:80px 16px 16px;max-width:900px;margin:auto}
+.navbar{position:fixed;top:0;left:0;right:0;height:56px;background:#1a1a1a;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:1000}
+.dot{width:12px;height:12px;border-radius:50%}
+.green{background:#2ecc71}.red{background:#e74c3c}.yellow{background:#f1c40f}
+.pulse{animation:pulse 1.5s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(241,196,15,.7)}70%{box-shadow:0 0 0 10px rgba(241,196,15,0)}100%{box-shadow:0 0 0 0 rgba(241,196,15,0)}}
+.card{background:#1c1c1c;padding:15px;border-radius:10px;margin-bottom:15px}
+input{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:none}
+button{padding:12px;width:100%;border:none;border-radius:8px;margin-top:10px;font-size:16px}
+.btn-save{background:#2196f3;color:#fff}
+.btn-reboot{background:#333;color:#fff}
+.btn-reset{background:#b71c1c;color:#fff}
+.btn-logout{background:#555;color:#fff}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 18px;border-radius:8px;opacity:0}
+.toast.show{opacity:1}
+.lock{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:4000}
 </style>
 </head>
 <body>
 
-<h2>Painel Administrativo – ESP8266</h2>
+<div class="navbar">
+<b>ESP8266 Gateway</b>
+<span><span id="dot" class="dot red"></span> <span id="connText">Offline</span></span>
+</div>
 
 <div class="card" id="status">Carregando status...</div>
 
 <form method="POST" action="/save">
-
-<div class="card">
-<b>Dispositivo</b>
-<input name="device" value="%DEVICE%">
-</div>
-
-<div class="card">
-<b>Wi-Fi STA</b>
-<input name="sta_ssid" value="%STA_SSID%" placeholder="SSID">
-<input type="password" name="sta_pass" value="%STA_PASS%" placeholder="Senha">
-</div>
-
-<div class="card">
-<b>Access Point</b>
-<input name="ap_ssid" value="%AP_SSID%" placeholder="Nome do AP">
-<input type="password" name="ap_pass" value="%AP_PASS%" placeholder="Senha do AP">
-</div>
-
-<div class="card">
-<b>Administrador</b>
-<input name="admin_user" value="%ADMIN_USER%" placeholder="Usuário">
-<input type="password" name="admin_pass" placeholder="Nova senha">
-</div>
-
-<div class="card">
-<b>Protocolos</b><br>
+<div class="card"><b>Dispositivo</b><input name="device" value="%DEVICE%"></div>
+<div class="card"><b>Wi-Fi STA</b><input name="sta_ssid" value="%STA_SSID%"><input type="password" name="sta_pass" value="%STA_PASS%"></div>
+<div class="card"><b>AP</b><input name="ap_ssid" value="%AP_SSID%"><input type="password" name="ap_pass" value="%AP_PASS%"></div>
+<div class="card"><b>Admin</b><input name="admin_user" value="%ADMIN_USER%"><input type="password" name="admin_pass"></div>
+<div class="card"><b>Protocolos</b><br>
 <input type="checkbox" name="http" %HTTP%> HTTP<br>
-<input type="checkbox" name="ws" %WS%> WebSocket<br>
-<input type="checkbox" name="udp" %UDP%> UDP
-</div>
-
-<button class="btn-save" type="submit">Salvar configurações</button>
+<input type="checkbox" name="ws" %WS%> WS<br>
+<input type="checkbox" name="udp" %UDP%> UDP</div>
+<button class="btn-save">Salvar</button>
 </form>
 
 <div class="card">
-<button class="btn-reboot" onclick="fetch('/reboot')">Reiniciar</button>
-<button class="btn-reset" onclick="fetch('/factory')">Redefinir</button>
+<button class="btn-reboot" onclick="doReboot()">Reiniciar</button>
+<button class="btn-reset" onclick="doReset()">Redefinir</button>
 <button class="btn-logout" onclick="location.href='/logout'">Sair</button>
 </div>
 
+<div id="toast" class="toast"></div>
+<div id="lock" class="lock"><div class="card">Processando...</div></div>
+
 <script>
+function toast(m){let t=document.getElementById('toast');t.innerText=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+function lock(m){document.getElementById('lock').style.display='flex'}
+function update(){
 fetch('/status').then(r=>r.json()).then(s=>{
-document.getElementById('status').innerHTML =
-'<b>Status</b><br>' +
-'Firmware: '+s.fw+'<br>' +
-'Heap: '+s.heap+'<br>' +
-'STA: '+(s.sta?'Conectado':'Desconectado')+'<br>' +
-'IP STA: '+s.sta_ip+'<br>' +
-'IP AP: '+s.ap_ip+'<br>' +
-'RSSI: '+s.rssi;
+document.getElementById('status').innerHTML='FW:'+s.fw+'<br>Heap:'+s.heap+'<br>RSSI:'+s.rssi;
+let d=document.getElementById('dot'),t=document.getElementById('connText');
+if(s.sta){d.className='dot green';t.innerText='Online'}else{d.className='dot yellow pulse';t.innerText='Reconectando'}
 });
+}
+function doReboot(){toast('Reiniciando');lock();fetch('/reboot')}
+function doReset(){toast('Resetando');lock();fetch('/factory')}
+update();setInterval(update,5000);
 </script>
 
-</body>
-</html>
+</body></html>
 )rawliteral";
 
 /* ================= SETUP =================== */
 void setup() {
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, HIGH);
-
   Serial.begin(115200);
-  delay(100);
-
   LittleFS.begin();
   loadCfg();
   startWiFi();
 
-  server.on("/", []() {
-    if (!auth()) return;
-    server.sendHeader("Location", "/admin");
-    server.send(302, "text/plain", "");
+  server.on("/", [](){ if(!auth())return; server.sendHeader("Location","/admin"); server.send(302); });
+  server.on("/admin", [](){
+    if(!auth())return;
+    String p=ADMIN_HTML;
+    p.replace("%DEVICE%",cfg.device);
+    p.replace("%STA_SSID%",cfg.sta_ssid);
+    p.replace("%STA_PASS%",cfg.sta_pass);
+    p.replace("%AP_SSID%",cfg.ap_ssid);
+    p.replace("%AP_PASS%",cfg.ap_pass);
+    p.replace("%ADMIN_USER%",cfg.admin_user);
+    p.replace("%HTTP%",cfg.http?"checked":"");
+    p.replace("%WS%",cfg.ws?"checked":"");
+    p.replace("%UDP%",cfg.udp?"checked":"");
+    server.send(200,"text/html",p);
   });
 
-  server.on("/admin", []() {
-    if (!auth()) return;
-    String p = ADMIN_HTML;
-    p.replace("%DEVICE%", cfg.device);
-    p.replace("%STA_SSID%", cfg.sta_ssid);
-    p.replace("%STA_PASS%", cfg.sta_pass);
-    p.replace("%AP_SSID%", cfg.ap_ssid);
-    p.replace("%AP_PASS%", cfg.ap_pass);
-    p.replace("%ADMIN_USER%", cfg.admin_user);
-    p.replace("%HTTP%", cfg.http ? "checked" : "");
-    p.replace("%WS%", cfg.ws ? "checked" : "");
-    p.replace("%UDP%", cfg.udp ? "checked" : "");
-    server.send(200, "text/html", p);
+  server.on("/save",HTTP_POST,[](){
+    if(!auth())return;
+    strlcpy(cfg.device,server.arg("device").c_str(),32);
+    strlcpy(cfg.sta_ssid,server.arg("sta_ssid").c_str(),32);
+    strlcpy(cfg.sta_pass,server.arg("sta_pass").c_str(),32);
+    strlcpy(cfg.ap_ssid,server.arg("ap_ssid").c_str(),32);
+    if(server.arg("ap_pass").length()>=8)strlcpy(cfg.ap_pass,server.arg("ap_pass").c_str(),32);
+    strlcpy(cfg.admin_user,server.arg("admin_user").c_str(),16);
+    if(server.arg("admin_pass").length()>=8)strlcpy(cfg.admin_pass,server.arg("admin_pass").c_str(),16);
+    cfg.http=server.hasArg("http");cfg.ws=server.hasArg("ws");cfg.udp=server.hasArg("udp");
+    saveCfg();server.send(200,"text/plain","OK");delay(300);ESP.restart();
   });
 
-  server.on("/save", HTTP_POST, []() {
-    if (!auth()) return;
+  server.on("/status",handleStatus);
+  server.on("/reboot",[](){ if(!auth())return; ESP.restart(); });
+  server.on("/factory",[](){ if(!auth())return; LittleFS.remove(CFG_FILE); ESP.restart(); });
+  server.on("/logout",[](){ server.sendHeader("WWW-Authenticate","Basic"); server.send(401); });
 
-    strlcpy(cfg.device, server.arg("device").c_str(), sizeof(cfg.device));
-    strlcpy(cfg.sta_ssid, server.arg("sta_ssid").c_str(), sizeof(cfg.sta_ssid));
-    strlcpy(cfg.sta_pass, server.arg("sta_pass").c_str(), sizeof(cfg.sta_pass));
-    strlcpy(cfg.ap_ssid, server.arg("ap_ssid").c_str(), sizeof(cfg.ap_ssid));
-
-    if (server.arg("ap_pass").length() >= MIN_PASSWORD_LENGTH)
-      strlcpy(cfg.ap_pass, server.arg("ap_pass").c_str(), sizeof(cfg.ap_pass));
-
-    strlcpy(cfg.admin_user, server.arg("admin_user").c_str(), sizeof(cfg.admin_user));
-
-    if (server.arg("admin_pass").length() >= MIN_PASSWORD_LENGTH)
-      strlcpy(cfg.admin_pass, server.arg("admin_pass").c_str(), sizeof(cfg.admin_pass));
-
-    cfg.http = server.hasArg("http");
-    cfg.ws   = server.hasArg("ws");
-    cfg.udp  = server.hasArg("udp");
-
-    saveCfg();
-    server.send(200, "text/plain", "Salvo. Reiniciando...");
-    delay(500);
-    ESP.restart();
-  });
-
-  server.on("/status", handleStatus);
-
-  server.on("/reboot", []() {
-    if (!auth()) return;
-    server.send(200, "text/plain", "Reiniciando");
-    delay(300);
-    ESP.restart();
-  });
-
-  server.on("/factory", []() {
-    if (!auth()) return;
-    LittleFS.remove(CFG_FILE);
-    server.send(200, "text/plain", "Resetando");
-    delay(300);
-    ESP.restart();
-  });
-
-  server.on("/logout", []() {
-    server.sendHeader("WWW-Authenticate", "Basic realm=\"ESP8266\"");
-    server.send(401, "text/plain", "Logout");
-  });
-
-  if (cfg.http) server.begin();
-  if (cfg.ws) ws.begin();
-  if (cfg.udp) udp.begin(UDP_PORT);
-
-  logEvent("Sistema pronto");
+  if(cfg.http)server.begin();
 }
 
 /* ================= LOOP ==================== */
 void loop() {
   checkWiFi();
-  updateLED();
-
-  if (cfg.http) server.handleClient();
-  if (cfg.ws) ws.loop();
-
-  if (cfg.udp && udp.parsePacket()) {
-    char buf[256];
-    int len = udp.read(buf, sizeof(buf) - 1);
-    buf[len] = 0;
-    logEvent("UDP: " + String(buf));
-  }
-
+  server.handleClient();
   MDNS.update();
-  yield();
 }
