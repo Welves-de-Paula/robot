@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 
 /* ================= METADATA ================= */
-#define FW_VERSION "3.6.0-ESP-GATEWAY"
+#define FW_VERSION "3.6.1-ESP-GATEWAY"
 
 /* ================= PORTAS =================== */
 #define HTTP_PORT 80
@@ -214,10 +214,50 @@ const char ADMIN_HTML[] PROGMEM = R"rawliteral(
 <meta charset="utf-8">
 <title>ESP8266 Admin</title>
 <style>
-body{background:#111;color:#eee;font-family:Arial;max-width:900px;margin:auto;padding:20px}
-.card{background:#1c1c1c;padding:15px;border-radius:6px;margin-bottom:15px}
-input{width:100%;padding:8px;margin-top:5px}
-button{padding:10px;width:100%;margin-top:10px}
+body{
+  background:#111;
+  color:#eee;
+  font-family:Arial;
+  max-width:900px;
+  margin:auto;
+  padding:20px
+}
+.card{
+  background:#1c1c1c;
+  padding:15px;
+  border-radius:8px;
+  margin-bottom:15px
+}
+input{
+  width:100%;
+  padding:9px;
+  margin-top:6px;
+  border-radius:6px;
+  border:none
+}
+button{
+  padding:11px;
+  width:100%;
+  margin-top:10px;
+  border:none;
+  border-radius:6px;
+  font-size:15px;
+  cursor:pointer;
+  transition:background .2s, transform .1s
+}
+button:hover{ transform:scale(1.01) }
+
+.btn-save{ background:#2196f3;color:#fff }
+.btn-save:hover{ background:#1e88e5 }
+
+.btn-reboot{ background:#2e2e2e;color:#fff }
+.btn-reboot:hover{ background:#3a3a3a }
+
+.btn-reset{ background:#b71c1c;color:#fff }
+.btn-reset:hover{ background:#c62828 }
+
+.btn-logout{ background:#555;color:#fff }
+.btn-logout:hover{ background:#666 }
 </style>
 </head>
 <body>
@@ -227,6 +267,7 @@ button{padding:10px;width:100%;margin-top:10px}
 <div class="card" id="status">Carregando status...</div>
 
 <form method="POST" action="/save">
+
 <div class="card">
 <b>Dispositivo</b>
 <input name="device" value="%DEVICE%">
@@ -257,13 +298,13 @@ button{padding:10px;width:100%;margin-top:10px}
 <input type="checkbox" name="udp" %UDP%> UDP
 </div>
 
-<button type="submit">Salvar configurações</button>
+<button class="btn-save" type="submit">Salvar configurações</button>
 </form>
 
 <div class="card">
-<button onclick="fetch('/reboot')">Reiniciar</button>
-<button onclick="fetch('/factory')">Redefinir</button>
-<button onclick="location.href='/logout'">Sair</button>
+<button class="btn-reboot" onclick="fetch('/reboot')">Reiniciar</button>
+<button class="btn-reset" onclick="fetch('/factory')">Redefinir</button>
+<button class="btn-logout" onclick="location.href='/logout'">Sair</button>
 </div>
 
 <script>
