@@ -409,18 +409,37 @@
                     <label class="form-label">Senha</label>
                     <input type="password" class="form-input" id="password" placeholder="Senha da rede">
                 </div>
+            </form>
+        </div>
+
+        <!-- AP Settings -->
+        <div class="card">
+            <div class="card-title">📡 Configurações AP (Access Point)</div>
+            <form id="apForm">
                 <div class="form-group">
-                    <label class="form-label">Modo de Conexão</label>
-                    <select class="form-select" id="wifiMode">
-                        <option value="STA">Station (Cliente)</option>
-                        <option value="AP">Access Point</option>
-                        <option value="AP_STA">Ambos</option>
+                    <label class="form-label">Nome do AP (SSID)</label>
+                    <input type="text" class="form-input" id="apSSID" placeholder="ESP8266-Robot-AP">
+                    <div class="info-text">Nome da rede que o ESP8266 irá criar</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Senha do AP</label>
+                    <input type="password" class="form-input" id="apPassword" placeholder="Senha do Access Point">
+                    <div class="info-text">Mínimo de 8 caracteres (deixe vazio para AP aberto)</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Número Máximo de Conexões</label>
+                    <select class="form-select" id="apMaxConnections">
+                        <option value="1">1 dispositivo</option>
+                        <option value="2">2 dispositivos</option>
+                        <option value="3">3 dispositivos</option>
+                        <option value="4" selected>4 dispositivos</option>
                     </select>
+                    <div class="info-text">Máximo de dispositivos conectados simultaneamente</div>
                 </div>
                 <div class="form-group">
                     <div class="form-checkbox">
-                        <input type="checkbox" id="dhcp" checked>
-                        <label class="form-label" style="margin-bottom: 0;">Usar DHCP</label>
+                        <input type="checkbox" id="apHidden">
+                        <label class="form-label" style="margin-bottom: 0;">Ocultar SSID (Rede invisível)</label>
                     </div>
                 </div>
             </form>
@@ -512,8 +531,11 @@
                 .then(data => {
                     // Wi-Fi
                     document.getElementById('ssid').value = data.wifi?.ssid || '';
-                    document.getElementById('wifiMode').value = data.wifi?.mode || 'STA';
-                    document.getElementById('dhcp').checked = data.wifi?.dhcp !== false;
+
+                    // AP
+                    document.getElementById('apSSID').value = data.ap?.ssid || 'ESP8266-Robot-AP';
+                    document.getElementById('apMaxConnections').value = data.ap?.maxConnections || '4';
+                    document.getElementById('apHidden').checked = data.ap?.hidden || false;
 
                     // System
                     document.getElementById('deviceName').value = data.system?.name || 'ESP8266';
@@ -536,9 +558,13 @@
             const config = {
                 wifi: {
                     ssid: document.getElementById('ssid').value,
-                    password: document.getElementById('password').value,
-                    mode: document.getElementById('wifiMode').value,
-                    dhcp: document.getElementById('dhcp').checked
+                    password: document.getElementById('password').value
+                },
+                ap: {
+                    ssid: document.getElementById('apSSID').value,
+                    password: document.getElementById('apPassword').value,
+                    maxConnections: parseInt(document.getElementById('apMaxConnections').value),
+                    hidden: document.getElementById('apHidden').checked
                 },
                 system: {
                     name: document.getElementById('deviceName').value,
@@ -557,7 +583,19 @@
                 }
             };
 
-            // Validar senhas
+            // Validar SSID do AP
+            if (!config.ap.ssid) {
+                showAlert('Por favor, defina um nome para o Access Point', 'error');
+                return;
+            }
+
+            // Validar senha do AP (se fornecida, deve ter no mínimo 8 caracteres)
+            if (config.ap.password && config.ap.password.length < 8) {
+                showAlert('A senha do AP deve ter no mínimo 8 caracteres', 'error');
+                return;
+            }
+
+            // Validar senhas de segurança
             if (config.security.newPassword && config.security.newPassword !== config.security.confirmPassword) {
                 showAlert('As senhas não coincidem!', 'error');
                 return;
