@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0F0F0F 0%, #232D3F 100%);
             min-height: 100vh;
             padding: 10px;
             overflow-x: hidden;
@@ -38,7 +38,7 @@
         }
 
         .sidebar-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
             color: white;
             padding: 25px 20px;
             text-align: center;
@@ -71,13 +71,13 @@
 
         .menu-item:hover {
             background: #f5f5f5;
-            border-left-color: #667eea;
+            border-left-color: #008170;
         }
 
         .menu-item.active {
-            background: linear-gradient(90deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
-            border-left-color: #667eea;
-            color: #667eea;
+            background: linear-gradient(90deg, rgba(0, 129, 112, 0.1) 0%, transparent 100%);
+            border-left-color: #008170;
+            color: #008170;
             font-weight: 600;
         }
 
@@ -137,7 +137,7 @@
         .hamburger {
             width: 24px;
             height: 2px;
-            background: #667eea;
+            background: #008170;
             position: relative;
             transition: all 0.3s ease;
         }
@@ -148,7 +148,7 @@
             position: absolute;
             width: 24px;
             height: 2px;
-            background: #667eea;
+            background: #008170;
             transition: all 0.3s ease;
         }
 
@@ -253,7 +253,7 @@
         .card-icon {
             width: clamp(40px, 8vw, 50px);
             height: clamp(40px, 8vw, 50px);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
             border-radius: 12px;
             display: flex;
             align-items: center;
@@ -310,7 +310,7 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #005B41 0%, #008170 100%);
             transition: width 0.5s ease;
         }
 
@@ -352,13 +352,13 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
             color: white;
         }
 
         .btn-primary:hover {
             transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 15px rgba(0, 129, 112, 0.4);
         }
 
         .btn-danger {
@@ -653,23 +653,7 @@
                 <span class="menu-badge" id="logsBadge">0</span>
             </a>
             <div class="menu-divider"></div>
-            <a href="#" class="menu-item" onclick="navigateTo('gpio')">
-                <span class="menu-icon">🔌</span>
-                <span class="menu-text">GPIO Control</span>
-            </a>
-            <a href="#" class="menu-item" onclick="navigateTo('wifi')">
-                <span class="menu-icon">📶</span>
-                <span class="menu-text">Wi-Fi Config</span>
-            </a>
-            <a href="#" class="menu-item" onclick="navigateTo('system')">
-                <span class="menu-icon">💻</span>
-                <span class="menu-text">Sistema</span>
-            </a>
-            <div class="menu-divider"></div>
-            <a href="#" class="menu-item" onclick="navigateTo('about')">
-                <span class="menu-icon">ℹ️</span>
-                <span class="menu-text">Sobre</span>
-            </a>
+     
             <a href="#" class="menu-item" onclick="navigateTo('logout')">
                 <span class="menu-icon">🚪</span>
                 <span class="menu-text">Sair</span>
