@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logs - ESP8266</title>
+    <title>Logs</title>
     <style>
         * {
             margin: 0;
@@ -13,9 +13,10 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0F0F0F 0%, #232D3F 100%);
+            background: #0F0F0F;
             min-height: 100vh;
             padding: 20px;
+            color: #fff;
         }
 
         .container {
@@ -33,10 +34,11 @@
             font-size: 2.5em;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            color: #008170;
         }
 
         .back-button {
-            background: white;
+            background: #232D3F;
             color: #008170;
             padding: 10px 20px;
             border-radius: 8px;
@@ -47,23 +49,27 @@
             margin-bottom: 20px;
             font-weight: 600;
             transition: all 0.3s ease;
+            border: 1px solid #005B41;
         }
 
         .back-button:hover {
             transform: translateX(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 15px rgba(0, 129, 112, 0.3);
+            background: #005B41;
+            color: #fff;
         }
 
         .controls {
-            background: white;
+            background: #232D3F;
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
             align-items: center;
+            border: 1px solid #005B41;
         }
 
         .filter-group {
@@ -74,24 +80,46 @@
 
         .filter-label {
             font-weight: 600;
-            color: #666;
+            color: #ccc;
         }
 
         .filter-select {
             padding: 8px 15px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #005B41;
             border-radius: 8px;
             font-size: 0.95em;
             cursor: pointer;
+            background: #0F0F0F;
+            color: #fff;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            border-color: #008170;
+            box-shadow: 0 0 0 3px rgba(0, 129, 112, 0.2);
         }
 
         .search-input {
             flex: 1;
             min-width: 200px;
             padding: 8px 15px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #005B41;
             border-radius: 8px;
             font-size: 0.95em;
+            background: #0F0F0F;
+            color: #fff;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: #008170;
+            box-shadow: 0 0 0 3px rgba(0, 129, 112, 0.2);
+        }
+
+        .search-input::placeholder {
+            color: #888;
         }
 
         .btn {
@@ -126,17 +154,18 @@
         }
 
         .logs-container {
-            background: white;
+            background: #232D3F;
             border-radius: 15px;
             padding: 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             max-height: 600px;
             overflow-y: auto;
+            border: 1px solid #005B41;
         }
 
         .log-entry {
             padding: 15px 20px;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid rgba(0, 91, 65, 0.2);
             display: flex;
             gap: 15px;
             align-items: flex-start;
@@ -144,7 +173,7 @@
         }
 
         .log-entry:hover {
-            background: #f9f9f9;
+            background: rgba(0, 129, 112, 0.1);
         }
 
         .log-entry:last-child {
@@ -153,7 +182,7 @@
 
         .log-timestamp {
             font-size: 0.85em;
-            color: #999;
+            color: #888;
             white-space: nowrap;
             min-width: 140px;
             font-family: 'Courier New', monospace;
@@ -197,14 +226,14 @@
 
         .log-message {
             flex: 1;
-            color: #333;
+            color: #ccc;
             line-height: 1.5;
             word-break: break-word;
         }
 
         .log-source {
             font-size: 0.85em;
-            color: #666;
+            color: #888;
             font-weight: 600;
             min-width: 100px;
         }
@@ -212,7 +241,7 @@
         .empty-logs {
             text-align: center;
             padding: 60px 20px;
-            color: #999;
+            color: #888;
         }
 
         .empty-logs-icon {
@@ -222,14 +251,15 @@
         }
 
         .stats {
-            background: white;
+            background: #232D3F;
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 20px;
+            border: 1px solid #005B41;
         }
 
         .stat-item {
@@ -245,7 +275,7 @@
 
         .stat-label {
             font-size: 0.85em;
-            color: #666;
+            color: #888;
             text-transform: uppercase;
         }
 
@@ -280,6 +310,167 @@
 
             .stats {
                 grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                padding: 0 5px;
+            }
+
+            .header {
+                margin-bottom: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .back-button {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                margin-bottom: 15px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 12px;
+                margin-bottom: 15px;
+                border-radius: 12px;
+            }
+
+            .stat-item {
+                padding: 8px 0;
+            }
+
+            .stat-value {
+                font-size: 1.5em;
+            }
+
+            .stat-label {
+                font-size: 0.75em;
+            }
+
+            .controls {
+                padding: 12px;
+                gap: 10px;
+                border-radius: 12px;
+                margin-bottom: 15px;
+            }
+
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+
+            .filter-label {
+                font-size: 0.85rem;
+            }
+
+            .filter-select {
+                padding: 8px 10px;
+                font-size: 0.85em;
+            }
+
+            .search-input {
+                padding: 8px 10px;
+                font-size: 0.85em;
+            }
+
+            .auto-refresh input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+
+            .logs-container {
+                max-height: 400px;
+                border-radius: 12px;
+            }
+
+            .log-entry {
+                padding: 10px 12px;
+                gap: 6px;
+            }
+
+            .log-timestamp {
+                font-size: 0.75em;
+            }
+
+            .log-level {
+                min-width: 55px;
+                font-size: 0.65em;
+                padding: 3px 6px;
+            }
+
+            .log-source {
+                font-size: 0.8em;
+            }
+
+            .log-message {
+                font-size: 0.85em;
+                line-height: 1.4;
+            }
+
+            .empty-logs {
+                padding: 40px 15px;
+            }
+
+            .empty-logs-icon {
+                font-size: 2.5em;
+                margin-bottom: 15px;
+            }
+
+            .empty-logs p {
+                font-size: 0.9em;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 1.3em;
+            }
+
+            .controls {
+                padding: 10px;
+            }
+
+            .filter-select,
+            .search-input {
+                font-size: 0.8em;
+            }
+
+            .btn {
+                font-size: 0.75rem;
+            }
+
+            .log-entry {
+                padding: 8px 10px;
+            }
+
+            .log-timestamp,
+            .log-source,
+            .log-message {
+                font-size: 0.75em;
+            }
+
+            .log-level {
+                font-size: 0.6em;
+                min-width: 50px;
             }
         }
 
