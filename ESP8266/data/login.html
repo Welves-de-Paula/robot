@@ -207,50 +207,31 @@
     </div>
 
     <script>
-        function handleLogin(event) {
+        async function handleLogin(event) {
             event.preventDefault();
-            
+
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
 
-            // Validação básica
-            if (!username || !password) {
-                showError('Por favor, preencha todos os campos');
-                return;
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (res.ok) {
+                    window.location.href = '/dashboard.html';
+                } else {
+                    const msg = await res.text();
+                    errorMessage.textContent = msg || 'Login inválido';
+                    errorMessage.classList.add('show');
+                }
+            } catch {
+                errorMessage.textContent = 'Erro de comunicação';
+                errorMessage.classList.add('show');
             }
-
-            if (username.length < 3) {
-                showError('Usuário deve ter pelo menos 3 caracteres');
-                return;
-            }
-
-            if (password.length < 4) {
-                showError('Senha deve ter pelo menos 4 caracteres');
-                return;
-            }
-
-            // Aqui você pode adicionar sua lógica de autenticação
-            // Por exemplo, fazer uma requisição para um servidor
-            console.log('Login attempt:', { username, password: '***' });
-
-            // Simulação de login (remova em produção)
-            // Redirecionar para index.html após login bem-sucedido
-            if (username && password) {
-                localStorage.setItem('loggedIn', 'true');
-                localStorage.setItem('username', username);
-                window.location.href = 'index.html';
-            }
-        }
-
-        function showError(message) {
-            const errorMessage = document.getElementById('errorMessage');
-            errorMessage.textContent = message;
-            errorMessage.classList.add('show');
-            
-            setTimeout(() => {
-                errorMessage.classList.remove('show');
-            }, 3000);
         }
 
         // Limpar mensagem de erro ao digitar
