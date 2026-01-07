@@ -418,7 +418,7 @@
             <form id="apForm">
                 <div class="form-group">
                     <label class="form-label">Nome do AP (SSID)</label>
-                    <input type="text" class="form-input" id="apSSID" placeholder="ESP8266-Robot-AP">
+                    <input type="text" class="form-input" id="apSSID" placeholder="ESP8266-SETUP">
                     <div class="info-text">Nome da rede que o ESP8266 irá criar</div>
                 </div>
                 <div class="form-group">
@@ -451,7 +451,7 @@
             <form id="systemForm">
                 <div class="form-group">
                     <label class="form-label">Nome do Dispositivo</label>
-                    <input type="text" class="form-input" id="deviceName" placeholder="ESP8266-Robot">
+                    <input type="text" class="form-input" id="deviceName" placeholder="ESP8266-SETUP">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Frequência da CPU</label>
@@ -533,7 +533,7 @@
                     document.getElementById('ssid').value = data.wifi?.ssid || '';
 
                     // AP
-                    document.getElementById('apSSID').value = data.ap?.ssid || 'ESP8266-Robot-AP';
+                    document.getElementById('apSSID').value = data.ap?.ssid || 'ESP8266-SETUP';
                     document.getElementById('apMaxConnections').value = data.ap?.maxConnections || '4';
                     document.getElementById('apHidden').checked = data.ap?.hidden || false;
 
