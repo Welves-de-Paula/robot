@@ -472,6 +472,11 @@ void setupRoutes()
             MDNS.end();
             state.mdnsStarted = false;
           }
+          if (WiFi.status() == WL_CONNECTED) {
+            if (MDNS.begin(cfg.device)) {
+              state.mdnsStarted = true;
+            }
+          }
         }
       }
       
