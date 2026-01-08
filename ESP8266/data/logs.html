@@ -497,60 +497,13 @@
             <h1>📝 Logs do Sistema</h1>
         </div>
 
-        <!-- Statistics -->
-        <div class="stats">
-            <div class="stat-item">
-                <div class="stat-value" id="totalLogs">0</div>
-                <div class="stat-label">Total</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="errorCount">0</div>
-                <div class="stat-label">Erros</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="warningCount">0</div>
-                <div class="stat-label">Avisos</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="infoCount">0</div>
-                <div class="stat-label">Info</div>
-            </div>
-        </div>
-
-        <!-- Controls -->
+        <!-- Controles simples -->
         <div class="controls">
-            <div class="filter-group">
-                <span class="filter-label">Nível:</span>
-                <select class="filter-select" id="levelFilter" onchange="filterLogs()">
-                    <option value="all">Todos</option>
-                    <option value="error">Erro</option>
-                    <option value="warning">Aviso</option>
-                    <option value="info">Info</option>
-                    <option value="debug">Debug</option>
-                    <option value="success">Sucesso</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <span class="filter-label">Origem:</span>
-                <select class="filter-select" id="sourceFilter" onchange="filterLogs()">
-                    <option value="all">Todas</option>
-                    <option value="wifi">Wi-Fi</option>
-                    <option value="system">Sistema</option>
-                    <option value="gpio">GPIO</option>
-                    <option value="sensor">Sensores</option>
-                </select>
-            </div>
-
-            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Buscar nos logs..." oninput="filterLogs()">
-
             <div class="auto-refresh">
                 <input type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh()">
-                <label class="filter-label" for="autoRefresh">Auto-atualizar</label>
+                <label class="filter-label" for="autoRefresh">Auto-atualizar (2s)</label>
             </div>
-
-            <button class="btn btn-primary" onclick="refreshLogs()">🔄 Atualizar</button>
-            <button class="btn btn-danger" onclick="clearLogs()">🗑️ Limpar</button>
+            <button class="btn btn-primary" onclick="refreshLogs()">🔄 Atualizar agora</button>
         </div>
 
         <!-- Logs Container -->
@@ -563,24 +516,19 @@
     </div>
 
     <script>
-        let allLogs = [];
         let refreshInterval = null;
 
-        // Carregar logs ao iniciar
         window.onload = function() {
             refreshLogs();
-            if (document.getElementById('autoRefresh').checked) {
-                startAutoRefresh();
-            }
+            startAutoRefresh();
         };
 
         function refreshLogs() {
             fetch('/api/logs')
                 .then(response => response.json())
                 .then(data => {
-                    allLogs = data.logs || [];
-                    updateStats();
-                    filterLogs();
+                    const logs = data.logs || [];
+                    displayLogs(logs);
                 })
                 .catch(error => {
                     console.error('Erro ao carregar logs:', error);
@@ -588,28 +536,9 @@
                 });
         }
 
-        function filterLogs() {
-            const levelFilter = document.getElementById('levelFilter').value;
-            const sourceFilter = document.getElementById('sourceFilter').value;
-            const searchText = document.getElementById('searchInput').value.toLowerCase();
-
-            let filteredLogs = allLogs.filter(log => {
-                const levelMatch = levelFilter === 'all' || log.level === levelFilter;
-                const sourceMatch = sourceFilter === 'all' || log.source === sourceFilter;
-                const searchMatch = searchText === '' || 
-                    log.message.toLowerCase().includes(searchText) ||
-                    log.source.toLowerCase().includes(searchText);
-                
-                return levelMatch && sourceMatch && searchMatch;
-            });
-
-            displayLogs(filteredLogs);
-        }
-
         function displayLogs(logs) {
             const container = document.getElementById('logsContainer');
-            
-            if (logs.length === 0) {
+            if (!logs.length) {
                 showEmptyState();
                 return;
             }
@@ -634,32 +563,6 @@
             `;
         }
 
-        function updateStats() {
-            document.getElementById('totalLogs').textContent = allLogs.length;
-            document.getElementById('errorCount').textContent = allLogs.filter(l => l.level === 'error').length;
-            document.getElementById('warningCount').textContent = allLogs.filter(l => l.level === 'warning').length;
-            document.getElementById('infoCount').textContent = allLogs.filter(l => l.level === 'info').length;
-        }
-
-        function clearLogs() {
-            if (confirm('Deseja realmente limpar todos os logs?')) {
-                fetch('/api/logs', {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    allLogs = [];
-                    updateStats();
-                    showEmptyState();
-                    alert('Logs limpos com sucesso!');
-                })
-                .catch(error => {
-                    console.error('Erro ao limpar logs:', error);
-                    alert('Erro ao limpar logs');
-                });
-            }
-        }
-
         function toggleAutoRefresh() {
             if (document.getElementById('autoRefresh').checked) {
                 startAutoRefresh();
@@ -669,7 +572,8 @@
         }
 
         function startAutoRefresh() {
-            refreshInterval = setInterval(refreshLogs, 5000);
+            stopAutoRefresh();
+            refreshInterval = setInterval(refreshLogs, 2000);
         }
 
         function stopAutoRefresh() {
@@ -700,24 +604,6 @@
                 "'": '&#039;'
             };
             return text.replace(/[&<>"']/g, m => map[m]);
-        }
-
-        // Gerar logs de exemplo se não houver logs
-        if (allLogs.length === 0) {
-            allLogs = [
-                { timestamp: Date.now() - 3600000, level: 'success', source: 'system', message: 'Sistema iniciado com sucesso' },
-                { timestamp: Date.now() - 3000000, level: 'info', source: 'wifi', message: 'Conectado à rede WiFi "MinhRede"' },
-                { timestamp: Date.now() - 2400000, level: 'info', source: 'system', message: 'Dashboard acessado pelo IP 192.168.1.100' },
-                { timestamp: Date.now() - 1800000, level: 'warning', source: 'system', message: 'Uso de memória acima de 80%' },
-                { timestamp: Date.now() - 1200000, level: 'debug', source: 'gpio', message: 'GPIO 2 configurado como OUTPUT' },
-                { timestamp: Date.now() - 600000, level: 'info', source: 'gpio', message: 'GPIO 14 ativado (HIGH)' },
-                { timestamp: Date.now() - 300000, level: 'error', source: 'sensor', message: 'Falha ao ler sensor DHT22' },
-                { timestamp: Date.now() - 120000, level: 'warning', source: 'wifi', message: 'Sinal fraco detectado: -78 dBm' },
-                { timestamp: Date.now() - 60000, level: 'info', source: 'system', message: 'Configurações salvas com sucesso' },
-                { timestamp: Date.now() - 10000, level: 'success', source: 'system', message: 'Backup automático concluído' }
-            ];
-            updateStats();
-            displayLogs(allLogs);
         }
     </script>
 </body>
