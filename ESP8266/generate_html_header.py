@@ -1,58 +1,53 @@
 #!/usr/bin/env python3
-"""
-Script para gerar o arquivo html_pages.h com todas as páginas HTML
-Lê os arquivos HTML da pasta data e gera strings PROGMEM
-"""
+# -*- coding: utf-8 -*-
 
 import os
 
-# Arquivos HTML para processar
+# Diretório contendo os arquivos HTML
+data_dir = "data"
+output_file = "html_pages.h"
+
+# Mapeamento de arquivos HTML para nomes de variáveis
 html_files = {
-    "HTML_LOGIN": "data/login.html",
-    "HTML_INDEX": "data/index.html",
-    "HTML_DASHBOARD": "data/dashboard.html",
-    "HTML_CONFIG": "data/config.html",
-    "HTML_LOGS": "data/logs.html",
+    "login.html": "HTML_LOGIN",
+    "index.html": "HTML_INDEX",
+    "dashboard.html": "HTML_DASHBOARD",
+    "config.html": "HTML_CONFIG",
+    "logs.html": "HTML_LOGS",
 }
 
 
-def read_html_file(filepath):
-    """Lê arquivo HTML e retorna conteúdo"""
-    with open(filepath, "r", encoding="utf-8") as f:
-        return f.read()
-
-
 def generate_header():
-    """Gera o arquivo html_pages.h"""
-    output = []
-    output.append("#ifndef HTML_PAGES_H")
-    output.append("#define HTML_PAGES_H")
-    output.append("")
-    output.append("#include <Arduino.h>")
-    output.append("")
+    with open(output_file, "w", encoding="utf-8") as out:
+        # Cabeçalho
+        out.write("#ifndef HTML_PAGES_H\n")
+        out.write("#define HTML_PAGES_H\n\n")
+        out.write("#include <Arduino.h>\n\n")
 
-    for var_name, filepath in html_files.items():
-        if os.path.exists(filepath):
-            print(f"Processando {filepath}...")
-            html_content = read_html_file(filepath)
+        # Processar cada arquivo HTML
+        for html_file, var_name in html_files.items():
+            html_path = os.path.join(data_dir, html_file)
 
-            # Adiciona comentário
-            output.append(f"// Página: {filepath}")
-            output.append(f'const char {var_name}[] PROGMEM = R"=====(')
-            output.append(html_content)
-            output.append(')=====";')
-            output.append("")
-        else:
-            print(f"AVISO: {filepath} não encontrado!")
+            if not os.path.exists(html_path):
+                print(f"Aviso: {html_path} não encontrado, pulando...")
+                continue
 
-    output.append("#endif")
+            print(f"Processando {html_file}...")
 
-    # Escreve arquivo
-    with open("html_pages.h", "w", encoding="utf-8") as f:
-        f.write("\n".join(output))
+            # Ler o arquivo HTML
+            with open(html_path, "r", encoding="utf-8") as f:
+                html_content = f.read()
 
-    print("\nArquivo html_pages.h gerado com sucesso!")
-    print(f"Total de páginas: {len(html_files)}")
+            # Escrever no header
+            out.write(f"// Página: {data_dir}/{html_file}\n")
+            out.write(f'const char {var_name}[] PROGMEM = R"=====(')
+            out.write(html_content)
+            out.write(')=====";\n\n')
+
+        # Rodapé
+        out.write("#endif\n")
+
+    print(f"\n✓ Arquivo {output_file} gerado com sucesso!")
 
 
 if __name__ == "__main__":

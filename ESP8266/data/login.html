@@ -222,7 +222,7 @@
                 });
 
                 if (res.ok) {
-                    window.location.href = '/dashboard.html';
+                    window.location.href = '/';
                 } else {
                     const msg = await res.text();
                     errorMessage.textContent = msg || 'Login inválido';

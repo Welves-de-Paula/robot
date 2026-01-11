@@ -3,35 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robot ESP8266</title>
+    <title>{{DEVICE_NAME}}</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0F0F0F;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #fff;
         }
+
         .container {
             text-align: center;
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: #232D3F;
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid #005B41;
+            max-width: 500px;
+            width: 100%;
+            animation: fadeIn 0.5s ease-out;
         }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         h1 {
-            color: #333;
-            margin: 0;
-            font-size: 3em;
+            color: #008170;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            display: block;
+            padding: 18px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-decoration: none;
+            color: white;
+            border: 2px solid #005B41;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 129, 112, 0.4);
+            border-color: #008170;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-logs {
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
+        }
+
+        .btn-config {
+            background: linear-gradient(135deg, #004d3d 0%, #006b5a 100%);
+        }
+
+        .btn-config:hover {
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .btn {
+                padding: 15px 25px;
+                font-size: 1em;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Olá! 👋</h1>
-        <p>Bem-vindo ao Robot ESP8266</p>
+        <h1>{{DEVICE_NAME}}</h1>
+        <p class="subtitle">ESP8266 Gateway</p>
+        <div class="button-group">
+            <a href="/logs.html" class="btn btn-logs">📊 Ver Logs</a>
+            <a href="/config.html" class="btn btn-config">⚙️ Configurações</a>
+        </div>
     </div>
 </body>
 </html>

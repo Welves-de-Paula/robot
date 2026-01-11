@@ -3,13 +3,21 @@
 #include <ESP8266mDNS.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <WebSocketsServer.h>
 #include "html_pages.h"
+#include "logs.h"
 
 /* ================= METADATA ================= */
-#define FW_VERSION "3.9.0-ESP-GATEWAY"
+#define FW_VERSION "4.0.0-ESP-BRIDGE"
 
 /* ================= PORTAS =================== */
 #define HTTP_PORT 80
+#define WS_PORT 81
+
+/* ================= SERIAL BRIDGE ============ */
+#define SERIAL_BAUDRATE 115200
+#define SERIAL_TIMEOUT 5000
+#define SERIAL_BUFFER_SIZE 2048
 
 /* ================= SEGURANÇA ================ */
 #define MAX_LOGIN_ATTEMPTS 5
@@ -19,18 +27,17 @@
 #define WIFI_RECONNECT_INTERVAL 30000
 
 ESP8266WebServer server(HTTP_PORT);
-String sessionToken = "";
-unsigned long sessionExpiry = 0;
-const unsigned long SESSION_TTL = 1800000; // 30 minutos
+WebSocketsServer webSocket(WS_PORT);
+LogSystem logSystem;
 
 /* ================= ESTADO =================== */
 struct State
 {
   unsigned long lastWifiCheck = 0;
-  unsigned long lastLoginFail = 0;
-  int loginAttempts = 0;
   bool wifiConnecting = false;
   bool mdnsStarted = false;
+  char serialBuffer[SERIAL_BUFFER_SIZE];
+  uint16_t serialBufferPos = 0;
 } state;
 
 /* ================= CONFIG =================== */
@@ -60,12 +67,8 @@ void serveFile(const char *path)
 {
   const char *html = nullptr;
 
-  if (strcmp(path, "/login.html") == 0)
-    html = HTML_LOGIN;
-  else if (strcmp(path, "/index.html") == 0 || strcmp(path, "/") == 0)
+  if (strcmp(path, "/index.html") == 0 || strcmp(path, "/") == 0)
     html = HTML_INDEX;
-  else if (strcmp(path, "/dashboard.html") == 0)
-    html = HTML_DASHBOARD;
   else if (strcmp(path, "/config.html") == 0)
     html = HTML_CONFIG;
   else if (strcmp(path, "/logs.html") == 0)
@@ -85,87 +88,136 @@ void serveFile(const char *path)
   }
 }
 
-bool auth()
+/* ================= SERIAL BRIDGE ============ */
+String sendToArduino(const char *protocol, const char *method, const char *uri, const char *body)
 {
-  unsigned long now = millis();
-
-  if (state.loginAttempts >= MAX_LOGIN_ATTEMPTS &&
-      now - state.lastLoginFail < LOGIN_TIMEOUT)
+  // Criar comando JSON para enviar ao Arduino
+  StaticJsonDocument<1024> cmd;
+  cmd["protocol"] = protocol;
+  cmd["method"] = method;
+  cmd["uri"] = uri;
+  if (body && strlen(body) > 0)
   {
-    server.send(429, "text/plain", "Bloqueado temporariamente");
-    return false;
+    cmd["body"] = body;
   }
 
-  // Sessão via cookie
-  if (server.hasHeader("Cookie"))
+  // Enviar para Arduino via Serial
+  serializeJson(cmd, Serial);
+  Serial.println(); // Terminador de linha
+  Serial.flush();
+
+  // Aguardar resposta do Arduino
+  unsigned long startTime = millis();
+  state.serialBufferPos = 0;
+
+  while (millis() - startTime < SERIAL_TIMEOUT)
   {
-    String cookie = server.header("Cookie");
-    int pos = cookie.indexOf("session=");
-    if (pos >= 0)
+    if (Serial.available())
     {
-      int end = cookie.indexOf(';', pos);
-      String token = cookie.substring(pos + 8, end == -1 ? cookie.length() : end);
-      if (token == sessionToken && now < sessionExpiry)
+      char c = Serial.read();
+
+      if (c == '\n' || c == '\r')
       {
-        sessionExpiry = now + SESSION_TTL; // renova
-        return true;
+        if (state.serialBufferPos > 0)
+        {
+          state.serialBuffer[state.serialBufferPos] = '\0';
+          String response = String(state.serialBuffer);
+          state.serialBufferPos = 0;
+          return response;
+        }
+      }
+      else if (state.serialBufferPos < SERIAL_BUFFER_SIZE - 1)
+      {
+        state.serialBuffer[state.serialBufferPos++] = c;
       }
     }
+    yield();
   }
 
-  if (!server.authenticate(cfg.admin_user, cfg.admin_pass))
+  // Timeout - retornar erro
+  return "{\"error\":\"Arduino timeout\",\"success\":false}";
+}
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
+{
+  switch (type)
   {
-    state.loginAttempts++;
-    state.lastLoginFail = now;
-    server.requestAuthentication();
-    return false;
-  }
+  case WStype_DISCONNECTED:
+    Serial.print("{\"ws\":\"disconnect\",\"client\":");
+    Serial.print(num);
+    Serial.println("}");
+    break;
 
-  state.loginAttempts = 0;
-  return true;
+  case WStype_CONNECTED:
+  {
+    IPAddress ip = webSocket.remoteIP(num);
+    Serial.print("{\"ws\":\"connect\",\"client\":");
+    Serial.print(num);
+    Serial.print(",\"ip\":\"");
+    Serial.print(ip.toString());
+    Serial.println("\"}");
+  }
+  break;
+
+  case WStype_TEXT:
+  {
+    // Recebeu mensagem WebSocket - enviar para Arduino
+    String msg = sendToArduino("ws", "message", "", (char *)payload);
+
+    // Enviar resposta de volta via WebSocket
+    webSocket.sendTXT(num, msg);
+  }
+  break;
+
+  case WStype_BIN:
+    // Dados binários - enviar para Arduino
+    Serial.print("{\"ws\":\"binary\",\"length\":");
+    Serial.print(length);
+    Serial.println("}");
+    break;
+  }
+}
+
+void processSerialFromArduino()
+{
+  while (Serial.available())
+  {
+    char c = Serial.read();
+
+    if (c == '\n' || c == '\r')
+    {
+      if (state.serialBufferPos > 0)
+      {
+        state.serialBuffer[state.serialBufferPos] = '\0';
+
+        // Processar mensagem do Arduino
+        StaticJsonDocument<512> doc;
+        DeserializationError error = deserializeJson(doc, state.serialBuffer);
+
+        if (!error)
+        {
+          // Se for uma mensagem broadcast, enviar para todos os clientes WebSocket
+          if (doc.containsKey("broadcast"))
+          {
+            webSocket.broadcastTXT(state.serialBuffer);
+          }
+        }
+
+        state.serialBufferPos = 0;
+      }
+    }
+    else if (state.serialBufferPos < SERIAL_BUFFER_SIZE - 1)
+    {
+      state.serialBuffer[state.serialBufferPos++] = c;
+    }
+  }
 }
 
 /* ================= LOGS (tempo real) ====== */
 void handleLogsGet()
 {
-  StaticJsonDocument<768> d;
-  JsonArray logs = d.createNestedArray("logs");
-
-  unsigned long up = millis() / 1000;
-
-  // Snapshot de sistema
-  JsonObject sys = logs.createNestedObject();
-  sys["timestamp"] = millis();
-  sys["level"] = "info";
-  sys["source"] = "system";
-  sys["message"] = String("Uptime ") + up + "s, heap livre " + ESP.getFreeHeap() + " bytes";
-
-  // Snapshot de Wi-Fi
-  JsonObject wifi = logs.createNestedObject();
-  wifi["timestamp"] = millis();
-  wifi["level"] = (WiFi.status() == WL_CONNECTED) ? "success" : "warning";
-  wifi["source"] = "wifi";
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    wifi["message"] = String("RSSI ") + WiFi.RSSI() + " dBm, IP " + WiFi.localIP().toString();
-  }
-  else
-  {
-    wifi["message"] = "Wi-Fi desconectado";
-  }
-
-  // Snapshot de filesystem
-  FSInfo fs_info;
-  LittleFS.info(fs_info);
-  JsonObject fs = logs.createNestedObject();
-  fs["timestamp"] = millis();
-  fs["level"] = "debug";
-  fs["source"] = "fs";
-  fs["message"] = String("FS usado ") + fs_info.usedBytes + "/" + fs_info.totalBytes + " bytes";
-
-  String out;
-  serializeJson(d, out);
-  server.send(200, "application/json", out);
+  String json = logSystem.getLogsJSON();
+  server.send(200, "application/json", json);
 }
 
 /* ================= CONFIG =================== */
@@ -209,7 +261,6 @@ void loadCfg()
   strlcpy(cfg.admin_user, d["admin_user"] | "admin", sizeof(cfg.admin_user));
   strlcpy(cfg.admin_pass, d["admin_pass"] | "admin123", sizeof(cfg.admin_pass));
   cfg.update_interval_ms = d["update_interval_ms"] | 2000;
-  // Sempre usar a frequência real do chip; ignorar valor salvo para evitar instabilidade
   cfg.cpu_freq_mhz = ESP.getCpuFreqMHz();
   cfg.pwm_freq = d["pwm_freq"] | 1000;
   cfg.gpio0 = d["gpio0"] | false;
@@ -250,10 +301,23 @@ void startWiFi()
   WiFi.hostname(cfg.device);
   WiFi.softAP(cfg.ap_ssid, cfg.ap_pass, 1, cfg.ap_hidden, cfg.ap_max_conn);
 
+  Serial.println("Access Point iniciado:");
+  Serial.print("  SSID: ");
+  Serial.println(cfg.ap_ssid);
+  Serial.print("  IP: ");
+  Serial.println(WiFi.softAPIP());
+
   if (strlen(cfg.sta_ssid))
   {
+    Serial.println("Conectando ao WiFi...");
+    Serial.print("  SSID: ");
+    Serial.println(cfg.sta_ssid);
     WiFi.begin(cfg.sta_ssid, cfg.sta_pass);
     state.wifiConnecting = true;
+  }
+  else
+  {
+    Serial.println("Modo AP apenas - sem conexão com internet");
   }
 }
 
@@ -269,6 +333,9 @@ void checkWiFi()
 
   if (WiFi.status() != WL_CONNECTED && !state.wifiConnecting)
   {
+    Serial.println("WiFi desconectado. Reconectando...");
+    WiFi.disconnect();
+    delay(100);
     WiFi.begin(cfg.sta_ssid, cfg.sta_pass);
     state.wifiConnecting = true;
   }
@@ -276,11 +343,26 @@ void checkWiFi()
   if (state.wifiConnecting && WiFi.status() == WL_CONNECTED)
   {
     state.wifiConnecting = false;
+    Serial.println("WiFi conectado!");
+    Serial.print("  IP: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("  Gateway: ");
+    Serial.println(WiFi.gatewayIP());
+    Serial.print("  DNS: ");
+    Serial.println(WiFi.dnsIP());
+    Serial.print("  RSSI: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
 
     if (!state.mdnsStarted)
     {
-      MDNS.begin(cfg.device);
-      state.mdnsStarted = true;
+      if (MDNS.begin(cfg.device))
+      {
+        state.mdnsStarted = true;
+        Serial.print("mDNS iniciado: http://");
+        Serial.print(cfg.device);
+        Serial.println(".local");
+      }
     }
   }
 }
@@ -288,57 +370,25 @@ void checkWiFi()
 /* ================= ROUTES =================== */
 void setupRoutes()
 {
-  // Páginas HTML
-  server.on("/login", HTTP_GET, []()
-            { serveFile("/login.html"); });
-
-  // Login via JSON para criar sessão baseada em cookie
-  server.on("/login", HTTP_POST, []()
-            {
-    if (server.hasArg("plain")) {
-      StaticJsonDocument<128> d;
-      deserializeJson(d, server.arg("plain"));
-      const char* user = d["username"] | "";
-      const char* pass = d["password"] | "";
-
-      if (strcmp(user, cfg.admin_user) == 0 && strcmp(pass, cfg.admin_pass) == 0) {
-        sessionToken = String(random(0x7fffffff), HEX) + String(millis(), HEX);
-        sessionExpiry = millis() + SESSION_TTL;
-        server.sendHeader("Set-Cookie", "session=" + sessionToken + "; Path=/; HttpOnly");
-        state.loginAttempts = 0;
-        server.send(200, "application/json", "{\"success\":true}");
-      } else {
-        state.loginAttempts++;
-        state.lastLoginFail = millis();
-        server.send(401, "application/json", "{\"error\":\"invalid credentials\"}");
-      }
-    } else {
-      server.send(400, "application/json", "{\"error\":\"Invalid request\"}");
-    } });
-
   server.on("/", HTTP_GET, []()
             {
-    if (!auth()) return;
+    logSystem.addLog(server);
     serveFile("/index.html"); });
-
-  server.on("/dashboard.html", HTTP_GET, []()
-            {
-    if (!auth()) return;
-    serveFile("/dashboard.html"); });
 
   server.on("/config.html", HTTP_GET, []()
             {
-    if (!auth()) return;
+    logSystem.addLog(server);
     serveFile("/config.html"); });
 
   server.on("/logs.html", HTTP_GET, []()
             {
-    if (!auth()) return;
+    logSystem.addLog(server);
     serveFile("/logs.html"); });
 
   // API Status simplificado (compatibilidade)
   server.on("/status", HTTP_GET, []()
             {
+    logSystem.addLog(server);
     StaticJsonDocument<256> d;
     d["fw"] = FW_VERSION;
     d["wifi"] = WiFi.status() == WL_CONNECTED;
@@ -348,14 +398,15 @@ void setupRoutes()
     serializeJson(d, out);
     server.send(200, "application/json", out); });
 
-  // API Status completo para Dashboard
+  // API Status completo
   server.on("/api/status", HTTP_GET, []()
             {
+    logSystem.addLog(server);
     StaticJsonDocument<1024> d;
     
     // CPU
     d["cpuFreq"] = ESP.getCpuFreqMHz();
-    d["cpuUsage"] = 0; // ESP8266 não expõe uso de CPU; retorna 0 para evitar valor falso
+    d["cpuUsage"] = 0;
     d["cpuCycles"] = ESP.getCycleCount();
     d["uptime"] = millis() / 1000;
     
@@ -388,7 +439,6 @@ void setupRoutes()
     d["bootMode"] = ESP.getBootMode();
     d["bootVersion"] = ESP.getBootVersion();
     
-    // GPIO (exemplo)
     JsonObject gpio = d.createNestedObject("gpio");
     gpio["0"] = digitalRead(0);
     gpio["2"] = digitalRead(2);
@@ -403,10 +453,53 @@ void setupRoutes()
     serializeJson(d, out);
     server.send(200, "application/json", out); });
 
+  // API WiFi Status
+  server.on("/api/wifi/status", HTTP_GET, []()
+            {
+    logSystem.addLog(server);
+    StaticJsonDocument<512> d;
+    
+    d["connected"] = WiFi.status() == WL_CONNECTED;
+    d["apIP"] = WiFi.softAPIP().toString();
+    d["stationIP"] = WiFi.localIP().toString();
+    d["gateway"] = WiFi.gatewayIP().toString();
+    d["dns"] = WiFi.dnsIP().toString();
+    d["rssi"] = WiFi.RSSI();
+    d["ssid"] = WiFi.SSID();
+    d["channel"] = WiFi.channel();
+    d["hasInternet"] = (WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0,0,0,0));
+    
+    String out;
+    serializeJson(d, out);
+    server.send(200, "application/json", out); });
+
+  // API WiFi Scan
+  server.on("/api/wifi/scan", HTTP_GET, []()
+            {
+    logSystem.addLog(server);
+    
+    int n = WiFi.scanNetworks();
+    StaticJsonDocument<2048> d;
+    JsonArray networks = d.createNestedArray("networks");
+    
+    for (int i = 0; i < n; i++) {
+      JsonObject net = networks.createNestedObject();
+      net["ssid"] = WiFi.SSID(i);
+      net["rssi"] = WiFi.RSSI(i);
+      net["channel"] = WiFi.channel(i);
+      net["encryption"] = (WiFi.encryptionType(i) == ENC_TYPE_NONE) ? "open" : "secure";
+    }
+    
+    d["count"] = n;
+    
+    String out;
+    serializeJson(d, out);
+    server.send(200, "application/json", out); });
+
   // API Config - GET
   server.on("/api/config", HTTP_GET, []()
             {
-    if (!auth()) return;
+    logSystem.addLog(server);
     
     StaticJsonDocument<768> d;
     
@@ -438,13 +531,12 @@ void setupRoutes()
   // API Config - POST
   server.on("/api/config", HTTP_POST, []()
             {
-    if (!auth()) return;
+    logSystem.addLog(server);
     
     if (server.hasArg("plain")) {
       StaticJsonDocument<768> d;
       deserializeJson(d, server.arg("plain"));
       
-      // Salvar configurações (implementar salvamento real)
       if (d.containsKey("wifi")) {
         strlcpy(cfg.sta_ssid, d["wifi"]["ssid"] | "", sizeof(cfg.sta_ssid));
         strlcpy(cfg.sta_pass, d["wifi"]["password"] | "", sizeof(cfg.sta_pass));
@@ -462,7 +554,6 @@ void setupRoutes()
         strlcpy(newName, d["system"]["name"] | "esp-gateway", sizeof(newName));
         bool nameChanged = strcmp(cfg.device, newName) != 0;
         strlcpy(cfg.device, newName, sizeof(cfg.device));
-        // Ignorar frequência enviada; manter a real do chip para evitar travamentos
         cfg.cpu_freq_mhz = ESP.getCpuFreqMHz();
         cfg.update_interval_ms = d["system"]["updateInterval"] | cfg.update_interval_ms;
 
@@ -509,7 +600,7 @@ void setupRoutes()
   // API Config Reset
   server.on("/api/config/reset", HTTP_POST, []()
             {
-    if (!auth()) return;
+    logSystem.addLog(server);
     
     strcpy(cfg.device, "esp-gateway");
     strcpy(cfg.ap_ssid, "ESP8266-SETUP");
@@ -536,15 +627,14 @@ void setupRoutes()
   // API Logs - DELETE
   server.on("/api/logs", HTTP_DELETE, []()
             {
-    if (!auth()) return;
+    logSystem.clear();
     server.send(200, "application/json", "{\"success\":true}"); });
 
   // API Logs Count
   server.on("/api/logs/count", HTTP_GET, []()
             {
-    // Contagem fixa para os snapshots enviados em tempo real
     StaticJsonDocument<64> outDoc;
-    outDoc["count"] = (WiFi.status() == WL_CONNECTED) ? 3 : 3; // número de itens enviados em /api/logs
+    outDoc["count"] = logSystem.getCount();
     String out;
     serializeJson(outDoc, out);
     server.send(200, "application/json", out); });
@@ -552,7 +642,7 @@ void setupRoutes()
   // API GPIO Control
   server.on("/api/gpio", HTTP_POST, []()
             {
-    if (!auth()) return;
+    logSystem.addLog(server);
     
     if (server.hasArg("plain")) {
       StaticJsonDocument<128> d;
@@ -574,7 +664,7 @@ void setupRoutes()
   // API Reset
   server.on("/api/reset", HTTP_POST, []()
             {
-    if (!auth()) return;
+    logSystem.addLog(server);
     
     if (server.hasArg("plain")) {
       StaticJsonDocument<64> d;
@@ -589,14 +679,59 @@ void setupRoutes()
       server.send(400, "application/json", "{\"error\":\"Invalid request\"}");
     } });
 
+  // API Arduino Bridge - redireciona para Arduino
+  server.on("/api/arduino", HTTP_ANY, []()
+            {
+    logSystem.addLog(server);
+    
+    String method;
+    switch(server.method()) {
+      case HTTP_GET: method = "GET"; break;
+      case HTTP_POST: method = "POST"; break;
+      case HTTP_PUT: method = "PUT"; break;
+      case HTTP_DELETE: method = "DELETE"; break;
+      default: method = "UNKNOWN"; break;
+    }
+    
+    String body = server.hasArg("plain") ? server.arg("plain") : "";
+    String response = sendToArduino("http", method.c_str(), "/api/arduino", body.c_str());
+    
+    server.send(200, "application/json", response); });
+
   server.onNotFound([]()
-                    { server.send(404, "text/plain", "Rota inválida"); });
+                    { 
+    // Tentar redirecionar rotas desconhecidas para o Arduino
+    String uri = server.uri();
+    if (uri.startsWith("/api/")) {
+      logSystem.addLog(server);
+      
+      String method;
+      switch(server.method()) {
+        case HTTP_GET: method = "GET"; break;
+        case HTTP_POST: method = "POST"; break;
+        case HTTP_PUT: method = "PUT"; break;
+        case HTTP_DELETE: method = "DELETE"; break;
+        default: method = "UNKNOWN"; break;
+      }
+      
+      String body = server.hasArg("plain") ? server.arg("plain") : "";
+      String response = sendToArduino("http", method.c_str(), uri.c_str(), body.c_str());
+      
+      server.send(200, "application/json", response);
+    } else {
+      server.send(404, "text/plain", "Rota inválida");
+    } });
 }
 
 /* ================= SETUP =================== */
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUDRATE);
+  delay(100);
+
+  Serial.println("\n\n=== ESP8266 Bridge Mode ===");
+  Serial.print("Firmware: ");
+  Serial.println(FW_VERSION);
 
   if (!LittleFS.begin())
   {
@@ -613,7 +748,13 @@ void setup()
   setupRoutes();
 
   server.begin();
-  Serial.println("Servidor HTTP iniciado");
+  Serial.println("Servidor HTTP iniciado na porta 80");
+
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
+  Serial.println("Servidor WebSocket iniciado na porta 81");
+
+  Serial.println("=== Bridge pronta ===");
 }
 
 /* ================= LOOP ==================== */
@@ -621,6 +762,9 @@ void loop()
 {
   checkWiFi();
   server.handleClient();
+  webSocket.loop();
+  processSerialFromArduino();
+
   if (state.mdnsStarted)
     MDNS.update();
 }

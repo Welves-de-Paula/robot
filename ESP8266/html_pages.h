@@ -4,8 +4,7 @@
 #include <Arduino.h>
 
 // Página: data/login.html
-const char HTML_LOGIN[] PROGMEM = R"=====(
-<!DOCTYPE html>
+const char HTML_LOGIN[] PROGMEM = R"=====(<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -229,7 +228,7 @@ const char HTML_LOGIN[] PROGMEM = R"=====(
                 });
 
                 if (res.ok) {
-                    window.location.href = '/dashboard.html';
+                    window.location.href = '/';
                 } else {
                     const msg = await res.text();
                     errorMessage.textContent = msg || 'Login inválido';
@@ -252,54 +251,140 @@ const char HTML_LOGIN[] PROGMEM = R"=====(
     </script>
 </body>
 </html>
-
 )=====";
 
 // Página: data/index.html
-const char HTML_INDEX[] PROGMEM = R"=====(
-<!DOCTYPE html>
+const char HTML_INDEX[] PROGMEM = R"=====(<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robot ESP8266</title>
+    <title>{{DEVICE_NAME}}</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0F0F0F;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #fff;
         }
+
         .container {
             text-align: center;
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: #232D3F;
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid #005B41;
+            max-width: 500px;
+            width: 100%;
+            animation: fadeIn 0.5s ease-out;
         }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         h1 {
-            color: #333;
-            margin: 0;
-            font-size: 3em;
+            color: #008170;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            display: block;
+            padding: 18px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-decoration: none;
+            color: white;
+            border: 2px solid #005B41;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 129, 112, 0.4);
+            border-color: #008170;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-logs {
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
+        }
+
+        .btn-config {
+            background: linear-gradient(135deg, #004d3d 0%, #006b5a 100%);
+        }
+
+        .btn-config:hover {
+            background: linear-gradient(135deg, #005B41 0%, #008170 100%);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .btn {
+                padding: 15px 25px;
+                font-size: 1em;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Olá! 👋</h1>
-        <p>Bem-vindo ao Robot ESP8266</p>
+        <h1>{{DEVICE_NAME}}</h1>
+        <p class="subtitle">ESP8266 Gateway</p>
+        <div class="button-group">
+            <a href="/logs.html" class="btn btn-logs">📊 Ver Logs</a>
+            <a href="/config.html" class="btn btn-config">⚙️ Configurações</a>
+        </div>
     </div>
 </body>
 </html>
-
 )=====";
 
 // Página: data/dashboard.html
-const char HTML_DASHBOARD[] PROGMEM = R"=====(
-<!DOCTYPE html>
+const char HTML_DASHBOARD[] PROGMEM = R"=====(<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -1577,17 +1662,15 @@ const char HTML_DASHBOARD[] PROGMEM = R"=====(
     </script>
 </body>
 </html>
-
 )=====";
 
 // Página: data/config.html
-const char HTML_CONFIG[] PROGMEM = R"=====(
-<!DOCTYPE html>
+const char HTML_CONFIG[] PROGMEM = R"=====(<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações</title>
+    <title>Configurações - {{DEVICE_NAME}}</title>
     <style>
         * {
             margin: 0;
@@ -1604,20 +1687,18 @@ const char HTML_CONFIG[] PROGMEM = R"=====(
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
         .header {
             text-align: center;
-            color: white;
             margin-bottom: 30px;
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             color: #008170;
         }
 
@@ -1671,6 +1752,9 @@ const char HTML_CONFIG[] PROGMEM = R"=====(
             padding-bottom: 15px;
             border-bottom: 2px solid rgba(0, 91, 65, 0.3);
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .form-group {
@@ -1692,60 +1776,46 @@ const char HTML_CONFIG[] PROGMEM = R"=====(
             border-radius: 8px;
             font-size: 1em;
             transition: all 0.3s ease;
+            outline: none;
             background: #0F0F0F;
             color: #fff;
-            outline: none;
         }
 
         .form-input:focus {
-            outline: none;
             border-color: #008170;
             box-shadow: 0 0 0 3px rgba(0, 129, 112, 0.2);
         }
 
         .form-input::placeholder {
-            color: #888;
+            color: #666;
         }
 
-        .form-select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #005B41;
-            border-radius: 8px;
-            font-size: 1em;
-            background: #0F0F0F;
-            color: #fff;
-            cursor: pointer;
-            outline: none;
-            transition: all 0.3s ease;
+        .form-input:disabled {
+            background: #1a1a1a;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
-        .form-select:focus {
-            border-color: #008170;
-            box-shadow: 0 0 0 3px rgba(0, 129, 112, 0.2);
-        }
-
-        .form-checkbox {
+        .checkbox-group {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .form-checkbox input[type="checkbox"] {
+        .checkbox-input {
             width: 20px;
             height: 20px;
             cursor: pointer;
         }
 
-        .button-group {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
+        .form-help {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
         }
 
         .btn {
-            flex: 1;
-            padding: 15px 30px;
+            padding: 12px 30px;
             border: none;
             border-radius: 8px;
             font-size: 1em;
@@ -1753,35 +1823,40 @@ const char HTML_CONFIG[] PROGMEM = R"=====(
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .btn-primary {
             background: linear-gradient(135deg, #005B41 0%, #008170 100%);
             color: white;
+            width: 100%;
         }
 
-        .btn-primary:hover {
-            transform: scale(1.05);
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 129, 112, 0.4);
         }
 
-        .btn-secondary {
-            background: #0F0F0F;
-            color: #ccc;
-            border: 2px solid #005B41;
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
-        .btn-secondary:hover {
-            background: #232D3F;
-            border-color: #008170;
-            color: #fff;
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
         }
 
         .alert {
             padding: 15px 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-            display: none;
             animation: slideDown 0.3s ease-out;
         }
 
@@ -1796,22 +1871,49 @@ const char HTML_CONFIG[] PROGMEM = R"=====(
             }
         }
 
-        .alert.success {
-            background: rgba(0, 129, 112, 0.2);
-            color: #008170;
-            border: 1px solid #005B41;
+        .alert-success {
+            background: rgba(46, 125, 50, 0.2);
+            border: 1px solid #2e7d32;
+            color: #a5d6a7;
         }
 
-        .alert.error {
-            background: rgba(255, 107, 107, 0.2);
-            color: #ff6b6b;
-            border: 1px solid rgba(255, 107, 107, 0.5);
+        .alert-error {
+            background: rgba(211, 47, 47, 0.2);
+            border: 1px solid #d32f2f;
+            color: #ef9a9a;
         }
 
-        .info-text {
-            font-size: 0.85em;
-            color: #888;
-            margin-top: 5px;
+        .alert-warning {
+            background: rgba(245, 124, 0, 0.2);
+            border: 1px solid #f57c00;
+            color: #ffcc80;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(0, 91, 65, 0.3);
+            margin: 25px 0;
+        }
+
+        .info-box {
+            background: rgba(0, 129, 112, 0.1);
+            border-left: 3px solid #008170;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box p {
+            color: #ccc;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
         }
 
         @media (max-width: 768px) {
@@ -1819,437 +1921,437 @@ const char HTML_CONFIG[] PROGMEM = R"=====(
                 padding: 10px;
             }
 
-            .container {
-                padding: 0 10px;
-            }
-
             .header h1 {
-                font-size: 1.8rem;
-            }
-
-            .back-button {
-                padding: 8px 15px;
-                font-size: 0.9rem;
+                font-size: 1.8em;
             }
 
             .card {
                 padding: 20px;
-                margin-bottom: 15px;
-            }
-
-            .card-title {
-                font-size: 1.3em;
-                margin-bottom: 15px;
-            }
-
-            .form-group {
-                margin-bottom: 15px;
-            }
-
-            .form-label {
-                font-size: 0.9em;
-            }
-
-            .form-input,
-            .form-select {
-                padding: 10px 12px;
-                font-size: 0.95em;
             }
 
             .button-group {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .btn {
-                width: 100%;
-                padding: 12px 20px;
-                font-size: 0.9em;
+                grid-template-columns: 1fr;
             }
         }
 
-        @media (max-width: 480px) {
-            body {
-                padding: 5px;
-            }
-
-            .container {
-                padding: 0 5px;
-            }
-
-            .header {
-                margin-bottom: 20px;
-            }
-
-            .header h1 {
-                font-size: 1.5rem;
-            }
-
-            .back-button {
-                padding: 8px 12px;
-                font-size: 0.85rem;
-                margin-bottom: 15px;
-            }
-
-            .card {
-                padding: 15px;
-                border-radius: 12px;
-                margin-bottom: 12px;
-            }
-
-            .card-title {
-                font-size: 1.2em;
-                margin-bottom: 12px;
-                padding-bottom: 12px;
-            }
-
-            .form-group {
-                margin-bottom: 12px;
-            }
-
-            .form-label {
-                font-size: 0.85em;
-                margin-bottom: 6px;
-            }
-
-            .form-input,
-            .form-select {
-                padding: 10px;
-                font-size: 0.9em;
-                border-radius: 6px;
-            }
-
-            .form-checkbox {
-                gap: 8px;
-            }
-
-            .form-checkbox input[type="checkbox"] {
-                width: 18px;
-                height: 18px;
-            }
-
-            .info-text {
-                font-size: 0.8em;
-            }
-
-            .button-group {
-                gap: 8px;
-                margin-top: 20px;
-            }
-
-            .btn {
-                padding: 12px 15px;
-                font-size: 0.85em;
-            }
-
-            .alert {
-                padding: 12px 15px;
-                font-size: 0.9em;
-            }
+        .password-toggle {
+            position: relative;
         }
 
-        @media (max-width: 360px) {
-            .card {
-                padding: 12px;
-            }
+        .password-toggle-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
 
-            .card-title {
-                font-size: 1.1em;
-            }
+        .password-toggle-btn:hover {
+            color: #008170;
+        }
 
-            .form-input,
-            .form-select {
-                font-size: 0.85em;
-            }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
 
-            .btn {
-                padding: 10px 12px;
-                font-size: 0.8em;
-            }
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 129, 112, 0.3);
+            border-top: 3px solid #008170;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="/dashboard.html" class="back-button">
-            ← Voltar ao Dashboard
+        <a href="/" class="back-button">
+            ← Voltar ao Início
         </a>
 
         <div class="header">
-            <h1>⚙️ Configurações</h1>
+            <h1>⚙️ Configurações do Sistema</h1>
         </div>
 
-        <div id="alertMessage" class="alert"></div>
+        <div id="alertContainer"></div>
 
-        <!-- Wi-Fi Settings -->
+        <!-- Configurações do Sistema -->
         <div class="card">
-            <div class="card-title">📶 Configurações Wi-Fi</div>
-            <form id="wifiForm">
-                <div class="form-group">
-                    <label class="form-label">SSID (Nome da Rede)</label>
-                    <input type="text" class="form-input" id="ssid" placeholder="Nome da rede Wi-Fi">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Senha</label>
-                    <input type="password" class="form-input" id="password" placeholder="Senha da rede">
-                </div>
-            </form>
+            <div class="card-title">
+                🖥️ Sistema
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="deviceName">Nome do Dispositivo (Hostname)</label>
+                <input type="text" id="deviceName" class="form-input" placeholder="esp-gateway" maxlength="31">
+                <div class="form-help">Usado para identificação na rede (mDNS) e interface</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="updateInterval">Intervalo de Atualização (ms)</label>
+                <input type="number" id="updateInterval" class="form-input" min="500" max="10000" step="100" value="2000">
+                <div class="form-help">Tempo entre atualizações automáticas do dashboard</div>
+            </div>
         </div>
 
-        <!-- AP Settings -->
+        <!-- Configurações do Access Point -->
         <div class="card">
-            <div class="card-title">📡 Configurações AP (Access Point)</div>
-            <form id="apForm">
-                <div class="form-group">
-                    <label class="form-label">Nome do AP (SSID)</label>
-                    <input type="text" class="form-input" id="apSSID" placeholder="ESP8266-SETUP">
-                    <div class="info-text">Nome da rede que o ESP8266 irá criar</div>
+            <div class="card-title">
+                📡 Access Point (AP)
+            </div>
+
+            <div class="info-box">
+                <p>O ESP8266 criará uma rede WiFi própria com estas configurações. Outros dispositivos poderão se conectar a ela.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="apSsid">Nome da Rede (SSID)</label>
+                <input type="text" id="apSsid" class="form-input" placeholder="ESP8266-SETUP" maxlength="31">
+                <div class="form-help">Nome visível da rede WiFi criada pelo ESP8266</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="apPassword">Senha da Rede</label>
+                <div class="password-toggle">
+                    <input type="password" id="apPassword" class="form-input" placeholder="Mínimo 8 caracteres" minlength="8" maxlength="63">
+                    <button type="button" class="password-toggle-btn" onclick="togglePassword('apPassword')">👁️</button>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Senha do AP</label>
-                    <input type="password" class="form-input" id="apPassword" placeholder="Senha do Access Point">
-                    <div class="info-text">Mínimo de 8 caracteres (deixe vazio para AP aberto)</div>
+                <div class="form-help">Senha para conectar ao AP (mínimo 8 caracteres)</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="apMaxConn">Máximo de Conexões</label>
+                <input type="number" id="apMaxConn" class="form-input" min="1" max="4" value="4">
+                <div class="form-help">Número máximo de dispositivos conectados simultaneamente</div>
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="apHidden" class="checkbox-input">
+                    <label class="form-label" for="apHidden" style="margin: 0;">Rede Oculta</label>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Número Máximo de Conexões</label>
-                    <select class="form-select" id="apMaxConnections">
-                        <option value="1">1 dispositivo</option>
-                        <option value="2">2 dispositivos</option>
-                        <option value="3">3 dispositivos</option>
-                        <option value="4" selected>4 dispositivos</option>
-                    </select>
-                    <div class="info-text">Máximo de dispositivos conectados simultaneamente</div>
-                </div>
-                <div class="form-group">
-                    <div class="form-checkbox">
-                        <input type="checkbox" id="apHidden">
-                        <label class="form-label" style="margin-bottom: 0;">Ocultar SSID (Rede invisível)</label>
-                    </div>
-                </div>
-            </form>
+                <div class="form-help">Se ativado, a rede não aparecerá na lista de redes disponíveis</div>
+            </div>
         </div>
 
-        <!-- System Settings -->
+        <!-- Configurações de WiFi Cliente -->
         <div class="card">
-            <div class="card-title">💻 Configurações do Sistema</div>
-            <form id="systemForm">
-                <div class="form-group">
-                    <label class="form-label">Nome do Dispositivo</label>
-                    <input type="text" class="form-input" id="deviceName" placeholder="ESP8266-SETUP">
+            <div class="card-title">
+                📶 Conexão WiFi (Cliente)
+            </div>
+
+            <div class="info-box">
+                <p>Conecte o ESP8266 à sua rede WiFi existente. O dispositivo funcionará como cliente e terá acesso à internet se disponível.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Escanear Redes Disponíveis</label>
+                <button type="button" class="btn btn-primary" onclick="scanWiFi()" id="scanBtn" style="width: 100%; margin-bottom: 15px;">
+                    🔍 Escanear Redes WiFi
+                </button>
+            </div>
+
+            <div class="form-group" id="networkSelectGroup" style="display: none;">
+                <label class="form-label" for="networkSelect">Selecione uma Rede</label>
+                <select id="networkSelect" class="form-input" onchange="selectNetwork()">
+                    <option value="">-- Selecione --</option>
+                </select>
+                <div class="form-help">Redes WiFi encontradas próximas</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="wifiSsid">Nome da Rede (SSID)</label>
+                <input type="text" id="wifiSsid" class="form-input" placeholder="Deixe vazio para não conectar" maxlength="31">
+                <div class="form-help">SSID da rede WiFi à qual deseja conectar</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="wifiPassword">Senha da Rede</label>
+                <div class="password-toggle">
+                    <input type="password" id="wifiPassword" class="form-input" placeholder="Senha da rede WiFi">
+                    <button type="button" class="password-toggle-btn" onclick="togglePassword('wifiPassword')">👁️</button>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Frequência da CPU</label>
-                    <select class="form-select" id="cpuFreq">
-                        <option value="80">80 MHz</option>
-                        <option value="160">160 MHz</option>
-                    </select>
-                    <div class="info-text">Maior frequência = maior consumo de energia</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Intervalo de Atualização (ms)</label>
-                    <input type="number" class="form-input" id="updateInterval" placeholder="2000" min="500" max="10000">
-                    <div class="info-text">Intervalo de atualização do dashboard</div>
-                </div>
-            </form>
+                <div class="form-help">Senha para conectar à rede WiFi</div>
+            </div>
         </div>
 
-        <!-- GPIO Settings -->
+        <!-- Botões de Ação -->
         <div class="card">
-            <div class="card-title">🔌 Configurações GPIO</div>
-            <form id="gpioForm">
-                <div class="form-group">
-                    <div class="form-checkbox">
-                        <input type="checkbox" id="gpio0">
-                        <label class="form-label" style="margin-bottom: 0;">GPIO 0 - Boot Mode</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <div class="form-checkbox">
-                        <input type="checkbox" id="gpio2">
-                        <label class="form-label" style="margin-bottom: 0;">GPIO 2 - LED Interno</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Modo PWM Frequency</label>
-                    <input type="number" class="form-input" id="pwmFreq" placeholder="1000" min="100" max="10000">
-                    <div class="info-text">Frequência PWM para controle de velocidade</div>
-                </div>
-            </form>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="saveConfig()" id="saveBtn">
+                    💾 Salvar Configurações
+                </button>
+                <button class="btn btn-danger" onclick="resetConfig()">
+                    🔄 Restaurar Padrões
+                </button>
+            </div>
         </div>
 
-        <!-- Security Settings -->
-        <div class="card">
-            <div class="card-title">🔒 Segurança</div>
-            <form id="securityForm">
-                <div class="form-group">
-                    <label class="form-label">Usuário Admin</label>
-                    <input type="text" class="form-input" id="adminUser" placeholder="admin">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Nova Senha</label>
-                    <input type="password" class="form-input" id="newPassword" placeholder="Digite a nova senha">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Confirmar Senha</label>
-                    <input type="password" class="form-input" id="confirmPassword" placeholder="Confirme a senha">
-                </div>
-            </form>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="button-group">
-            <button class="btn btn-secondary" onclick="resetSettings()">Resetar</button>
-            <button class="btn btn-primary" onclick="saveSettings()">Salvar Configurações</button>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px; color: #888;">Salvando configurações...</p>
         </div>
     </div>
 
     <script>
-        // Carregar configurações ao iniciar
+        let currentConfig = {};
+        let scannedNetworks = [];
+
         window.onload = function() {
-            loadSettings();
+            loadConfig();
         };
 
-        function loadSettings() {
+        function scanWiFi() {
+            const scanBtn = document.getElementById('scanBtn');
+            const networkSelectGroup = document.getElementById('networkSelectGroup');
+            const networkSelect = document.getElementById('networkSelect');
+            
+            scanBtn.disabled = true;
+            scanBtn.textContent = '🔄 Escaneando...';
+            
+            fetch('/api/wifi/scan')
+                .then(response => response.json())
+                .then(data => {
+                    scannedNetworks = data.networks || [];
+                    networkSelect.innerHTML = '<option value="">-- Selecione --</option>';
+                    
+                    if (scannedNetworks.length === 0) {
+                        showAlert('Nenhuma rede WiFi encontrada', 'warning');
+                    } else {
+                        scannedNetworks.forEach((network, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            const signal = network.rssi > -60 ? '📶' : network.rssi > -70 ? '📡' : '📉';
+                            const security = network.encryption === 'open' ? '🔓' : '🔒';
+                            option.textContent = `${signal} ${security} ${network.ssid} (${network.rssi} dBm)`;
+                            networkSelect.appendChild(option);
+                        });
+                        networkSelectGroup.style.display = 'block';
+                        showAlert(`✅ ${scannedNetworks.length} rede(s) encontrada(s)`, 'success');
+                    }
+                    
+                    scanBtn.disabled = false;
+                    scanBtn.textContent = '🔍 Escanear Redes WiFi';
+                })
+                .catch(error => {
+                    console.error('Erro ao escanear:', error);
+                    showAlert('❌ Erro ao escanear redes WiFi', 'error');
+                    scanBtn.disabled = false;
+                    scanBtn.textContent = '🔍 Escanear Redes WiFi';
+                });
+        }
+
+        function selectNetwork() {
+            const networkSelect = document.getElementById('networkSelect');
+            const wifiSsidInput = document.getElementById('wifiSsid');
+            const selectedIndex = networkSelect.value;
+            
+            if (selectedIndex !== '' && scannedNetworks[selectedIndex]) {
+                wifiSsidInput.value = scannedNetworks[selectedIndex].ssid;
+                wifiSsidInput.focus();
+            }
+        }
+
+        function loadConfig() {
+            showLoading(true);
             fetch('/api/config')
                 .then(response => response.json())
                 .then(data => {
-                    // Wi-Fi
-                    document.getElementById('ssid').value = data.wifi?.ssid || '';
-
-                    // AP
-                    document.getElementById('apSSID').value = data.ap?.ssid || 'ESP8266-SETUP';
-                    document.getElementById('apMaxConnections').value = data.ap?.maxConnections || '4';
+                    currentConfig = data;
+                    
+                    // Sistema
+                    document.getElementById('deviceName').value = data.system?.name || 'esp-gateway';
+                    document.getElementById('updateInterval').value = data.system?.updateInterval || 2000;
+                    
+                    // Access Point
+                    document.getElementById('apSsid').value = data.ap?.ssid || 'ESP8266-SETUP';
+                    document.getElementById('apPassword').value = '';
+                    document.getElementById('apMaxConn').value = data.ap?.maxConnections || 4;
                     document.getElementById('apHidden').checked = data.ap?.hidden || false;
-
-                    // System
-                    document.getElementById('deviceName').value = data.system?.name || 'ESP8266';
-                    document.getElementById('cpuFreq').value = data.system?.cpuFreq || '80';
-                    document.getElementById('updateInterval').value = data.system?.updateInterval || '2000';
-
-                    // GPIO
-                    document.getElementById('pwmFreq').value = data.gpio?.pwmFreq || '1000';
-
-                    // Security
-                    document.getElementById('adminUser').value = data.security?.user || 'admin';
+                    
+                    // WiFi Cliente
+                    document.getElementById('wifiSsid').value = data.wifi?.ssid || '';
+                    document.getElementById('wifiPassword').value = '';
+                    
+                    showLoading(false);
                 })
                 .catch(error => {
                     console.error('Erro ao carregar configurações:', error);
                     showAlert('Erro ao carregar configurações', 'error');
+                    showLoading(false);
                 });
         }
 
-        function saveSettings() {
+        function saveConfig() {
+            const deviceName = document.getElementById('deviceName').value.trim();
+            const apSsid = document.getElementById('apSsid').value.trim();
+            const apPassword = document.getElementById('apPassword').value;
+            const wifiSsid = document.getElementById('wifiSsid').value.trim();
+
+            // Validações
+            if (!deviceName) {
+                showAlert('Nome do dispositivo é obrigatório', 'error');
+                return;
+            }
+
+            if (!apSsid) {
+                showAlert('Nome da rede AP é obrigatório', 'error');
+                return;
+            }
+
+            if (apPassword && apPassword.length < 8) {
+                showAlert('Senha do AP deve ter no mínimo 8 caracteres', 'error');
+                return;
+            }
+
             const config = {
-                wifi: {
-                    ssid: document.getElementById('ssid').value,
-                    password: document.getElementById('password').value
-                },
-                ap: {
-                    ssid: document.getElementById('apSSID').value,
-                    password: document.getElementById('apPassword').value,
-                    maxConnections: parseInt(document.getElementById('apMaxConnections').value),
-                    hidden: document.getElementById('apHidden').checked
-                },
                 system: {
-                    name: document.getElementById('deviceName').value,
-                    cpuFreq: parseInt(document.getElementById('cpuFreq').value),
+                    name: deviceName,
                     updateInterval: parseInt(document.getElementById('updateInterval').value)
                 },
-                gpio: {
-                    gpio0: document.getElementById('gpio0').checked,
-                    gpio2: document.getElementById('gpio2').checked,
-                    pwmFreq: parseInt(document.getElementById('pwmFreq').value)
+                ap: {
+                    ssid: apSsid,
+                    maxConnections: parseInt(document.getElementById('apMaxConn').value),
+                    hidden: document.getElementById('apHidden').checked
                 },
-                security: {
-                    user: document.getElementById('adminUser').value,
-                    newPassword: document.getElementById('newPassword').value,
-                    confirmPassword: document.getElementById('confirmPassword').value
+                wifi: {
+                    ssid: wifiSsid
                 }
             };
 
-            // Validar SSID do AP
-            if (!config.ap.ssid) {
-                showAlert('Por favor, defina um nome para o Access Point', 'error');
-                return;
+            // Adicionar senhas apenas se preenchidas
+            if (apPassword) {
+                config.ap.password = apPassword;
             }
 
-            // Validar senha do AP (se fornecida, deve ter no mínimo 8 caracteres)
-            if (config.ap.password && config.ap.password.length < 8) {
-                showAlert('A senha do AP deve ter no mínimo 8 caracteres', 'error');
-                return;
+            const wifiPassword = document.getElementById('wifiPassword').value;
+            if (wifiPassword) {
+                config.wifi.password = wifiPassword;
             }
 
-            // Validar senhas de segurança
-            if (config.security.newPassword && config.security.newPassword !== config.security.confirmPassword) {
-                showAlert('As senhas não coincidem!', 'error');
-                return;
-            }
+            showLoading(true);
+            document.getElementById('saveBtn').disabled = true;
 
             fetch('/api/config', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(config)
             })
             .then(response => response.json())
             .then(data => {
-                showAlert('Configurações salvas com sucesso!', 'success');
-                setTimeout(() => {
-                    if (config.wifi.ssid && config.wifi.password) {
-                        alert('O ESP8266 será reiniciado para aplicar as novas configurações Wi-Fi.');
-                    }
-                }, 2000);
+                showLoading(false);
+                document.getElementById('saveBtn').disabled = false;
+
+                if (data.success) {
+                    showAlert('✅ Configurações salvas com sucesso!', 'success');
+                    
+                    // Recarregar configurações
+                    setTimeout(() => {
+                        loadConfig();
+                    }, 1000);
+                } else {
+                    showAlert('❌ Erro ao salvar configurações: ' + (data.error || 'desconhecido'), 'error');
+                }
             })
             .catch(error => {
-                console.error('Erro ao salvar configurações:', error);
-                showAlert('Erro ao salvar configurações', 'error');
+                console.error('Erro ao salvar:', error);
+                showAlert('❌ Erro de comunicação ao salvar configurações', 'error');
+                showLoading(false);
+                document.getElementById('saveBtn').disabled = false;
             });
         }
 
-        function resetSettings() {
-            if (confirm('Deseja realmente resetar todas as configurações para os valores padrão?')) {
-                fetch('/api/config/reset', {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    showAlert('Configurações resetadas!', 'success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                })
-                .catch(error => {
-                    console.error('Erro ao resetar configurações:', error);
-                    showAlert('Erro ao resetar configurações', 'error');
-                });
+        function resetConfig() {
+            if (!confirm('⚠️ Tem certeza que deseja restaurar todas as configurações para os valores padrão?\n\nIsso irá resetar:\n- Nome do dispositivo\n- Configurações de AP\n- Configurações de WiFi')) {
+                return;
             }
+
+            showLoading(true);
+
+            fetch('/api/config/reset', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+                if (data.success) {
+                    showAlert('✅ Configurações restauradas! Redirecionando para login...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    showAlert('❌ Erro ao restaurar configurações', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao resetar:', error);
+                showAlert('❌ Erro de comunicação ao resetar configurações', 'error');
+                showLoading(false);
+            });
+        }
+
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            field.type = field.type === 'password' ? 'text' : 'password';
         }
 
         function showAlert(message, type) {
-            const alert = document.getElementById('alertMessage');
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
             alert.textContent = message;
-            alert.className = 'alert ' + type;
-            alert.style.display = 'block';
             
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 5000);
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            // Auto-remover alertas de sucesso após 5 segundos
+            if (type === 'success') {
+                setTimeout(() => {
+                    alert.remove();
+                }, 5000);
+            }
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.add('active');
+            } else {
+                loading.classList.remove('active');
+            }
         }
     </script>
 </body>
 </html>
-
 )=====";
 
 // Página: data/logs.html
-const char HTML_LOGS[] PROGMEM = R"=====(
-<!DOCTYPE html>
+const char HTML_LOGS[] PROGMEM = R"=====(<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logs</title>
+    <title>Logs HTTP - {{DEVICE_NAME}}</title>
     <style>
         * {
             margin: 0;
@@ -2266,21 +2368,24 @@ const char HTML_LOGS[] PROGMEM = R"=====(
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
         .header {
             text-align: center;
-            color: white;
             margin-bottom: 30px;
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             color: #008170;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 1.1em;
         }
 
         .back-button {
@@ -2318,54 +2423,21 @@ const char HTML_LOGS[] PROGMEM = R"=====(
             border: 1px solid #005B41;
         }
 
-        .filter-group {
+        .auto-refresh {
             display: flex;
-            gap: 10px;
             align-items: center;
+            gap: 8px;
+        }
+
+        .auto-refresh input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
         }
 
         .filter-label {
             font-weight: 600;
             color: #ccc;
-        }
-
-        .filter-select {
-            padding: 8px 15px;
-            border: 2px solid #005B41;
-            border-radius: 8px;
-            font-size: 0.95em;
-            cursor: pointer;
-            background: #0F0F0F;
-            color: #fff;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .filter-select:focus {
-            border-color: #008170;
-            box-shadow: 0 0 0 3px rgba(0, 129, 112, 0.2);
-        }
-
-        .search-input {
-            flex: 1;
-            min-width: 200px;
-            padding: 8px 15px;
-            border: 2px solid #005B41;
-            border-radius: 8px;
-            font-size: 0.95em;
-            background: #0F0F0F;
-            color: #fff;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            border-color: #008170;
-            box-shadow: 0 0 0 3px rgba(0, 129, 112, 0.2);
-        }
-
-        .search-input::placeholder {
-            color: #888;
         }
 
         .btn {
@@ -2404,84 +2476,137 @@ const char HTML_LOGS[] PROGMEM = R"=====(
             border-radius: 15px;
             padding: 0;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-height: 600px;
+            max-height: 700px;
             overflow-y: auto;
             border: 1px solid #005B41;
         }
 
         .log-entry {
-            padding: 15px 20px;
+            padding: 20px;
             border-bottom: 1px solid rgba(0, 91, 65, 0.2);
-            display: flex;
-            gap: 15px;
-            align-items: flex-start;
             transition: background 0.2s ease;
         }
 
         .log-entry:hover {
-            background: rgba(0, 129, 112, 0.1);
+            background: rgba(0, 129, 112, 0.05);
         }
 
         .log-entry:last-child {
             border-bottom: none;
         }
 
-        .log-timestamp {
-            font-size: 0.85em;
-            color: #888;
-            white-space: nowrap;
-            min-width: 140px;
-            font-family: 'Courier New', monospace;
+        .log-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
         }
 
-        .log-level {
-            padding: 4px 10px;
+        .log-method {
+            padding: 6px 12px;
             border-radius: 6px;
-            font-size: 0.75em;
-            font-weight: 600;
-            text-transform: uppercase;
-            white-space: nowrap;
+            font-size: 0.85em;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
             min-width: 70px;
             text-align: center;
         }
 
-        .log-level.info {
+        .log-method.GET {
             background: #e3f2fd;
             color: #1976d2;
         }
 
-        .log-level.warning {
-            background: #fff3e0;
-            color: #f57c00;
-        }
-
-        .log-level.error {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        .log-level.debug {
-            background: #f3e5f5;
-            color: #7b1fa2;
-        }
-
-        .log-level.success {
+        .log-method.POST {
             background: #e8f5e9;
             color: #2e7d32;
         }
 
-        .log-message {
-            flex: 1;
-            color: #ccc;
-            line-height: 1.5;
-            word-break: break-word;
+        .log-method.PUT {
+            background: #fff3e0;
+            color: #f57c00;
         }
 
-        .log-source {
+        .log-method.DELETE {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .log-method.PATCH {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .log-uri {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            color: #008170;
+            font-weight: 600;
+            font-size: 1.1em;
+            word-break: break-all;
+        }
+
+        .log-timestamp {
             font-size: 0.85em;
             color: #888;
+            white-space: nowrap;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-details {
+            display: grid;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .log-section {
+            background: #0F0F0F;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #005B41;
+        }
+
+        .log-section-title {
             font-weight: 600;
-            min-width: 100px;
+            color: #008170;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .log-section-content {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #ccc;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 10px 0;
+        }
+
+        .log-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .log-meta-label {
+            color: #888;
+            font-weight: 600;
+        }
+
+        .log-meta-value {
+            color: #fff;
+            font-family: 'Courier New', monospace;
         }
 
         .empty-logs {
@@ -2526,237 +2651,77 @@ const char HTML_LOGS[] PROGMEM = R"=====(
         }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 0 10px;
-            }
-
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .filter-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .search-input {
-                width: 100%;
-            }
-
-            .log-entry {
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            .log-timestamp,
-            .log-source {
-                min-width: auto;
-            }
-
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
             body {
-                padding: 5px;
-            }
-
-            .container {
-                padding: 0 5px;
-            }
-
-            .header {
-                margin-bottom: 20px;
-            }
-
-            .header h1 {
-                font-size: 1.5rem;
-            }
-
-            .back-button {
-                padding: 8px 12px;
-                font-size: 0.85rem;
-                margin-bottom: 15px;
-            }
-
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-                padding: 12px;
-                margin-bottom: 15px;
-                border-radius: 12px;
-            }
-
-            .stat-item {
-                padding: 8px 0;
-            }
-
-            .stat-value {
-                font-size: 1.5em;
-            }
-
-            .stat-label {
-                font-size: 0.75em;
-            }
-
-            .controls {
-                padding: 12px;
-                gap: 10px;
-                border-radius: 12px;
-                margin-bottom: 15px;
-            }
-
-            .filter-group {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 6px;
-            }
-
-            .filter-label {
-                font-size: 0.85rem;
-            }
-
-            .filter-select {
-                padding: 8px 10px;
-                font-size: 0.85em;
-            }
-
-            .search-input {
-                padding: 8px 10px;
-                font-size: 0.85em;
-            }
-
-            .auto-refresh input[type="checkbox"] {
-                width: 18px;
-                height: 18px;
-            }
-
-            .btn {
-                padding: 8px 12px;
-                font-size: 0.8rem;
-            }
-
-            .logs-container {
-                max-height: 400px;
-                border-radius: 12px;
-            }
-
-            .log-entry {
-                padding: 10px 12px;
-                gap: 6px;
-            }
-
-            .log-timestamp {
-                font-size: 0.75em;
-            }
-
-            .log-level {
-                min-width: 55px;
-                font-size: 0.65em;
-                padding: 3px 6px;
-            }
-
-            .log-source {
-                font-size: 0.8em;
-            }
-
-            .log-message {
-                font-size: 0.85em;
-                line-height: 1.4;
-            }
-
-            .empty-logs {
-                padding: 40px 15px;
-            }
-
-            .empty-logs-icon {
-                font-size: 2.5em;
-                margin-bottom: 15px;
-            }
-
-            .empty-logs p {
-                font-size: 0.9em;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .stat-value {
-                font-size: 1.3em;
-            }
-
-            .controls {
                 padding: 10px;
             }
 
-            .filter-select,
-            .search-input {
-                font-size: 0.8em;
+            .header h1 {
+                font-size: 1.8em;
             }
 
-            .btn {
-                font-size: 0.75rem;
+            .log-header {
+                flex-direction: column;
+                align-items: flex-start;
             }
 
-            .log-entry {
-                padding: 8px 10px;
+            .log-uri {
+                font-size: 0.95em;
             }
 
-            .log-timestamp,
-            .log-source,
-            .log-message {
-                font-size: 0.75em;
+            .log-meta {
+                flex-direction: column;
+                gap: 10px;
             }
 
-            .log-level {
-                font-size: 0.6em;
-                min-width: 50px;
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
             }
-        }
-
-        .auto-refresh {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .auto-refresh input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="/dashboard.html" class="back-button">
-            ← Voltar ao Dashboard
+        <a href="/" class="back-button">
+            ← Voltar ao Início
         </a>
 
         <div class="header">
-            <h1>📝 Logs do Sistema</h1>
+            <h1>� Monitor de Requisições HTTP</h1>
+            <p>Captura em tempo real - Método, URL, Headers e Body</p>
         </div>
 
-        <!-- Controles simples -->
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalRequests">0</div>
+                <div class="stat-label">Total de Requisições</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="getCount">0</div>
+                <div class="stat-label">GET</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="postCount">0</div>
+                <div class="stat-label">POST</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="otherCount">0</div>
+                <div class="stat-label">Outros</div>
+            </div>
+        </div>
+
         <div class="controls">
             <div class="auto-refresh">
                 <input type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh()">
-                <label class="filter-label" for="autoRefresh">Auto-atualizar (2s)</label>
+                <label class="filter-label" for="autoRefresh">Auto-atualizar (1s)</label>
             </div>
-            <button class="btn btn-primary" onclick="refreshLogs()">🔄 Atualizar agora</button>
+            <button class="btn btn-primary" onclick="refreshLogs()">🔄 Atualizar</button>
+            <button class="btn btn-danger" onclick="clearLogs()">🗑️ Limpar Logs</button>
         </div>
 
-        <!-- Logs Container -->
         <div class="logs-container" id="logsContainer">
             <div class="empty-logs">
-                <div class="empty-logs-icon">📋</div>
-                <p>Nenhum log encontrado</p>
+                <div class="empty-logs-icon">📡</div>
+                <p>Aguardando requisições HTTP...</p>
             </div>
         </div>
     </div>
@@ -2775,6 +2740,7 @@ const char HTML_LOGS[] PROGMEM = R"=====(
                 .then(data => {
                     const logs = data.logs || [];
                     displayLogs(logs);
+                    updateStats(logs);
                 })
                 .catch(error => {
                     console.error('Erro ao carregar logs:', error);
@@ -2789,24 +2755,102 @@ const char HTML_LOGS[] PROGMEM = R"=====(
                 return;
             }
 
-            container.innerHTML = logs.map(log => `
-                <div class="log-entry">
-                    <div class="log-timestamp">${formatTimestamp(log.timestamp)}</div>
-                    <div class="log-level ${log.level}">${log.level}</div>
-                    <div class="log-source">${log.source}</div>
-                    <div class="log-message">${escapeHtml(log.message)}</div>
-                </div>
-            `).join('');
+            container.innerHTML = logs.map(log => {
+                let headersHtml = '';
+                if (log.headers && log.headers.trim()) {
+                    headersHtml = `
+                        <div class="log-section">
+                            <div class="log-section-title">📋 Headers</div>
+                            <div class="log-section-content">${escapeHtml(log.headers)}</div>
+                        </div>
+                    `;
+                }
+
+                let bodyHtml = '';
+                if (log.body && log.body.trim()) {
+                    bodyHtml = `
+                        <div class="log-section">
+                            <div class="log-section-title">📦 Body (${log.contentLength} bytes)</div>
+                            <div class="log-section-content">${escapeHtml(log.body)}</div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="log-entry">
+                        <div class="log-header">
+                            <div class="log-method ${log.method}">${log.method}</div>
+                            <div class="log-uri">${escapeHtml(log.uri)}</div>
+                            <div class="log-timestamp">${formatTimestamp(log.timestamp)}</div>
+                        </div>
+                        
+                        <div class="log-meta">
+                            <div class="log-meta-item">
+                                <span class="log-meta-label">Protocolo:</span>
+                                <span class="log-meta-value">${log.protocol}</span>
+                            </div>
+                            <div class="log-meta-item">
+                                <span class="log-meta-label">Cliente IP:</span>
+                                <span class="log-meta-value">${log.clientIP}</span>
+                            </div>
+                            <div class="log-meta-item">
+                                <span class="log-meta-label">Content-Length:</span>
+                                <span class="log-meta-value">${log.contentLength} bytes</span>
+                            </div>
+                        </div>
+
+                        <div class="log-details">
+                            ${headersHtml}
+                            ${bodyHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats(logs) {
+            let getCount = 0;
+            let postCount = 0;
+            let otherCount = 0;
+
+            logs.forEach(log => {
+                if (log.method === 'GET') getCount++;
+                else if (log.method === 'POST') postCount++;
+                else otherCount++;
+            });
+
+            document.getElementById('totalRequests').textContent = logs.length;
+            document.getElementById('getCount').textContent = getCount;
+            document.getElementById('postCount').textContent = postCount;
+            document.getElementById('otherCount').textContent = otherCount;
         }
 
         function showEmptyState() {
             const container = document.getElementById('logsContainer');
             container.innerHTML = `
                 <div class="empty-logs">
-                    <div class="empty-logs-icon">📋</div>
-                    <p>Nenhum log encontrado</p>
+                    <div class="empty-logs-icon">📡</div>
+                    <p>Aguardando requisições HTTP...</p>
                 </div>
             `;
+            
+            document.getElementById('totalRequests').textContent = '0';
+            document.getElementById('getCount').textContent = '0';
+            document.getElementById('postCount').textContent = '0';
+            document.getElementById('otherCount').textContent = '0';
+        }
+
+        function clearLogs() {
+            if (confirm('Deseja limpar todos os logs?')) {
+                fetch('/api/logs', { method: 'DELETE' })
+                    .then(() => {
+                        refreshLogs();
+                    })
+                    .catch(error => {
+                        console.error('Erro ao limpar logs:', error);
+                        alert('Erro ao limpar logs');
+                    });
+            }
         }
 
         function toggleAutoRefresh() {
@@ -2819,7 +2863,7 @@ const char HTML_LOGS[] PROGMEM = R"=====(
 
         function startAutoRefresh() {
             stopAutoRefresh();
-            refreshInterval = setInterval(refreshLogs, 2000);
+            refreshInterval = setInterval(refreshLogs, 1000); // 1 segundo para tempo real
         }
 
         function stopAutoRefresh() {
@@ -2831,14 +2875,16 @@ const char HTML_LOGS[] PROGMEM = R"=====(
 
         function formatTimestamp(timestamp) {
             const date = new Date(timestamp);
-            return date.toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            const now = Date.now();
+            const diff = now - timestamp;
+            
+            if (diff < 60000) {
+                return 'há ' + Math.floor(diff / 1000) + 's';
+            } else if (diff < 3600000) {
+                return 'há ' + Math.floor(diff / 60000) + 'm';
+            } else {
+                return date.toLocaleTimeString('pt-BR');
+            }
         }
 
         function escapeHtml(text) {
@@ -2854,7 +2900,6 @@ const char HTML_LOGS[] PROGMEM = R"=====(
     </script>
 </body>
 </html>
-
 )=====";
 
 #endif
